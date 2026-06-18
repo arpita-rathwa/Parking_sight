@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "ParkSight"
+version = "1.0.0"
+id = "artifacts/parksight"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18789
+
+[services.development]
+run = "pnpm --filter @workspace/parksight run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/parksight", "run", "build" ]
+publicDir = "artifacts/parksight/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18789"
+BASE_PATH = "/"
