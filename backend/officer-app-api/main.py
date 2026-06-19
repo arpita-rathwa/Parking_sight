@@ -1,21 +1,18 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, HTTPException
+
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from shared.models.database import engine, Base, get_db
-from shared.models.enforcement_log import EnforcementLog
-from shared.models.zones import Zone
-from shared.models.users import User
-from shared.auth.jwt import get_current_user, require_role
+from shared.auth.jwt import require_role
+from shared.config.settings import settings
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
-from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.middleware.logging import StructuredLoggingMiddleware
-from shared.config.settings import settings
+from shared.middleware.rate_limiter import RateLimitMiddleware
+from shared.models.database import Base, get_db, get_engine
+from shared.models.enforcement_log import EnforcementLog
+from shared.models.users import User
+from shared.models.zones import Zone
+from sqlalchemy.orm import Session
 
 app = FastAPI(title="officer-app-api", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)
@@ -24,7 +21,7 @@ app.add_middleware(StructuredLoggingMiddleware)
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=get_engine())
 
 
 class StatusUpdate(BaseModel):
@@ -68,7 +65,11 @@ async def update_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("officer", "admin")),
 ):
-    log = db.query(EnforcementLog).filter(EnforcementLog.id == update.assignment_id).first()
+    log = (
+        db.query(EnforcementLog)
+        .filter(EnforcementLog.id == update.assignment_id)
+        .first()
+    )
     if not log:
         raise HTTPException(status_code=404, detail="Assignment not found")
 
@@ -99,7 +100,11 @@ async def update_status(
     }
     producer.send(KAFKA_TOPICS["enforcement_updates"], key=str(log.id), value=event)
 
-    return {"status": "updated", "assignment_id": str(log.id), "new_status": update.status}
+    return {
+        "status": "updated",
+        "assignment_id": str(log.id),
+        "new_status": update.status,
+    }
 
 
 @app.get(f"{settings.API_V1_PREFIX}/health")

@@ -1,18 +1,8 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+
 from alembic import context
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from shared.models.database import Base
-from shared.models.users import User
-from shared.models.violations import Violation
-from shared.models.cameras import Camera
-from shared.models.zones import Zone
-from shared.models.congestion_scores import CongestionScore
-from shared.models.enforcement_log import EnforcementLog
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 if config.config_file_name is not None:

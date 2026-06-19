@@ -1,7 +1,8 @@
+import json
+import logging
 import time
 import uuid
-import logging
-import json
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -20,7 +21,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
         elapsed = time.time() - start
         log_entry = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "service": request.app.title if hasattr(request.app, "title") else "unknown",
+            "service": (
+                request.app.title if hasattr(request.app, "title") else "unknown"
+            ),
             "level": "INFO",
             "trace_id": trace_id,
             "method": request.method,

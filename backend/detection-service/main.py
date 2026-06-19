@@ -1,21 +1,17 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import uuid
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
+
+from fastapi import Depends, FastAPI, File, UploadFile
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from shared.models.database import engine, Base, get_db
-from shared.models.violations import Violation
-from shared.models.cameras import Camera
-from shared.auth.jwt import get_current_user, require_role
+from shared.auth.jwt import require_role
+from shared.config.settings import settings
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
-from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.middleware.logging import StructuredLoggingMiddleware
-from shared.config.settings import settings
+from shared.middleware.rate_limiter import RateLimitMiddleware
+from shared.models.database import Base, get_db, get_engine
+from shared.models.violations import Violation
+from sqlalchemy.orm import Session
 
 app = FastAPI(title="detection-service", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)
@@ -24,7 +20,7 @@ app.add_middleware(StructuredLoggingMiddleware)
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=get_engine())
 
 
 class DetectionResult(BaseModel):
@@ -45,7 +41,7 @@ async def detect_violation(
     longitude: float,
     file: UploadFile = File(None),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("admin", "operator")),
+    current_user=Depends(require_role("admin", "operator")),
 ):
     violation_id = uuid.uuid4()
     now = datetime.now(timezone.utc)

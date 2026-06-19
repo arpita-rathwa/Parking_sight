@@ -1,22 +1,17 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from datetime import datetime, timedelta, timezone
 
-from datetime import datetime, timezone, timedelta
-from fastapi import FastAPI, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func, text
-from shared.models.database import engine, Base, get_db
+from fastapi import Depends, FastAPI, HTTPException, Query
+from shared.auth.jwt import require_role
+from shared.config.settings import settings
+from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.congestion_scores import CongestionScore
+from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
 from shared.models.zones import Zone
-from shared.auth.jwt import get_current_user, require_role
-from shared.kafka.producer import producer
-from shared.kafka.topics import KAFKA_TOPICS
 from shared.redis.client import redis_client
-from shared.middleware.rate_limiter import RateLimitMiddleware
-from shared.middleware.logging import StructuredLoggingMiddleware
-from shared.config.settings import settings
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 app = FastAPI(title="scoring-service", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)
@@ -25,7 +20,7 @@ app.add_middleware(StructuredLoggingMiddleware)
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=get_engine())
 
 
 @app.on_event("startup")
@@ -38,7 +33,7 @@ async def get_zone_impact(
     zone_id: str,
     hours: int = Query(24, ge=1, le=168),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("admin", "operator", "planner")),
+    current_user=Depends(require_role("admin", "operator", "planner")),
 ):
     cache_key = f"zone_impact:{zone_id}:{hours}"
     cached = await redis_client.get(cache_key)
@@ -72,6 +67,7 @@ async def get_zone_impact(
         .scalar()
     )
 
+    avg_impact = sum(s.impact_score for s in scores) / len(scores) if scores else 0
     result = {
         "zone_id": zone_id,
         "zone_name": zone.name,
@@ -86,7 +82,7 @@ async def get_zone_impact(
             }
             for s in scores
         ],
-        "average_impact": sum(s.impact_score for s in scores) / len(scores) if scores else 0,
+        "average_impact": avg_impact,
     }
 
     await redis_client.set(cache_key, result, ttl=settings.HEATMAP_CACHE_TTL)

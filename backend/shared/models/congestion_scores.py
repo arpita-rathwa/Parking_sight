@@ -1,15 +1,18 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+
 from shared.models.database import Base
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class CongestionScore(Base):
     __tablename__ = "congestion_scores"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    zone_id = Column(UUID(as_uuid=True), ForeignKey("zones.id"), nullable=False, index=True)
+    zone_id = Column(
+        UUID(as_uuid=True), ForeignKey("zones.id"), nullable=False, index=True
+    )
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
     speed_drop_percent = Column(Float, default=0.0)
     violation_count = Column(Integer, default=0)

@@ -1,23 +1,18 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from datetime import datetime, timedelta, timezone
 
-from datetime import datetime, timezone, timedelta
-from fastapi import FastAPI, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func, cast, Date
-from shared.models.database import engine, Base, get_db
-from shared.models.violations import Violation
-from shared.models.congestion_scores import CongestionScore
-from shared.models.zones import Zone
-from shared.auth.jwt import get_current_user, require_role
-from shared.redis.client import redis_client
-from shared.kafka.producer import producer
-from shared.kafka.topics import KAFKA_TOPICS
-from shared.middleware.rate_limiter import RateLimitMiddleware
-from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.auth.jwt import require_role
 from shared.config.settings import settings
+from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.middleware.rate_limiter import RateLimitMiddleware
+from shared.models.congestion_scores import CongestionScore
+from shared.models.database import Base, get_db, get_engine
+from shared.models.violations import Violation
+from shared.models.zones import Zone
+from shared.redis.client import redis_client
+from sqlalchemy import Date, cast, func
+from sqlalchemy.orm import Session
 
 app = FastAPI(title="dashboard-api", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)
@@ -26,7 +21,7 @@ app.add_middleware(StructuredLoggingMiddleware)
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=get_engine())
 
 
 @app.on_event("startup")
@@ -61,7 +56,7 @@ async def get_heatmap(
     hours: int = Query(24, ge=1, le=168),
     resolution: float = Query(0.001, ge=0.0001, le=0.1),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("admin", "operator", "planner")),
+    current_user=Depends(require_role("admin", "operator", "planner")),
 ):
     cache_key = f"heatmap:{hours}:{resolution}"
     cached = await redis_client.get(cache_key)
@@ -69,8 +64,8 @@ async def get_heatmap(
         return cached
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-
     grid_size = resolution
+
     violations = (
         db.query(
             func.floor(func.ST_X(Violation.coordinates) / grid_size).label("grid_x"),
@@ -82,15 +77,20 @@ async def get_heatmap(
         .all()
     )
 
-    features = []
-    for v in violations:
-        lon = (float(v.grid_x) + 0.5) * grid_size
-        lat = (float(v.grid_y) + 0.5) * grid_size
-        features.append({
+    features = [
+        {
             "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    (float(v.grid_x) + 0.5) * grid_size,
+                    (float(v.grid_y) + 0.5) * grid_size,
+                ],
+            },
             "properties": {"count": v.count},
-        })
+        }
+        for v in violations
+    ]
 
     geojson = {"type": "FeatureCollection", "features": features}
 
@@ -104,7 +104,7 @@ async def get_analytics_trends(
     zone_id: str = Query(None),
     vehicle_type: str = Query(None),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("admin", "operator", "planner")),
+    current_user=Depends(require_role("admin", "operator", "planner")),
 ):
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -136,7 +136,7 @@ async def get_analytics_trends(
 async def get_alerts(
     active_only: bool = Query(True),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("admin", "operator")),
+    current_user=Depends(require_role("admin", "operator")),
 ):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
 
@@ -158,14 +158,17 @@ async def get_alerts(
     alerts = []
     for z in high_impact_zones:
         zone = zone_map.get(str(z.zone_id))
-        alerts.append({
-            "zone_id": str(z.zone_id),
-            "zone_name": zone.name if zone else "Unknown",
-            "severity": "CRITICAL" if float(z.avg_impact) > 80 else "HIGH",
-            "average_impact": round(float(z.avg_impact), 2),
-            "total_violations": int(z.total_violations),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-        })
+        avg_impact = float(z.avg_impact)
+        alerts.append(
+            {
+                "zone_id": str(z.zone_id),
+                "zone_name": zone.name if zone else "Unknown",
+                "severity": "CRITICAL" if avg_impact > 80 else "HIGH",
+                "average_impact": round(avg_impact, 2),
+                "total_violations": int(z.total_violations),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     return {"alerts": alerts, "count": len(alerts)}
 
@@ -175,13 +178,13 @@ async def alerts_websocket(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 
 @app.get(f"{settings.API_V1_PREFIX}/admin/config")
-async def get_config(current_user = Depends(require_role("admin"))):
+async def get_config(current_user=Depends(require_role("admin"))):
     return {
         "detection_confidence_threshold": settings.DETECTION_CONFIDENCE_THRESHOLD,
         "frame_sample_interval_seconds": settings.FRAME_SAMPLE_INTERVAL_SECONDS,
@@ -195,7 +198,7 @@ async def get_config(current_user = Depends(require_role("admin"))):
 @app.put(f"{settings.API_V1_PREFIX}/admin/config")
 async def update_config(
     config: dict,
-    current_user = Depends(require_role("admin")),
+    current_user=Depends(require_role("admin")),
 ):
     for key, value in config.items():
         if hasattr(settings, key.upper()):

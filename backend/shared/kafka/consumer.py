@@ -1,5 +1,6 @@
 import json
-from typing import Callable, Any
+from typing import Any, Callable
+
 from kafka import KafkaConsumer
 from shared.config.settings import settings
 

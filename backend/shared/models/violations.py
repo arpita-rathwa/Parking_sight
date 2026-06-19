@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+
 from geoalchemy2 import Geometry
 from shared.models.database import Base
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class Violation(Base):

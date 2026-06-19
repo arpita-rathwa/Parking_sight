@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+
 from geoalchemy2 import Geometry
 from shared.models.database import Base
+from sqlalchemy import Column, DateTime, Float, String
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class Zone(Base):

@@ -1,8 +1,9 @@
 import time
 from collections import defaultdict
-from fastapi import Request, HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
+
+from fastapi import HTTPException, Request
 from shared.config.settings import settings
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -22,7 +23,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         window = settings.RATE_LIMIT_WINDOW_SECONDS
         max_requests = self._get_limit_for_path(path)
 
-        self.requests[rate_key] = [t for t in self.requests[rate_key] if now - t < window]
+        self.requests[rate_key] = [
+            t for t in self.requests[rate_key] if now - t < window
+        ]
 
         if len(self.requests[rate_key]) >= max_requests:
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
@@ -30,7 +33,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests[rate_key].append(now)
         response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(max_requests)
-        response.headers["X-RateLimit-Remaining"] = str(max_requests - len(self.requests[rate_key]))
+        response.headers["X-RateLimit-Remaining"] = str(
+            max_requests - len(self.requests[rate_key])
+        )
         response.headers["X-RateLimit-Reset"] = str(int(now + window))
         return response
 

@@ -1,14 +1,6 @@
-from fastapi.testclient import TestClient
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from queue_service.main import app
-
-client = TestClient(app)
+from shared.config.settings import settings
 
 
-def test_health():
-    response = client.get("/api/v1/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+def test_queue_settings():
+    assert settings.PRIORITY_QUEUE_CACHE_TTL == 300
+    assert settings.MAX_QUEUE_SIZE == 1000

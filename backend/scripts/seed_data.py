@@ -1,16 +1,17 @@
 import csv
-import uuid
-import sys
 import os
+import sys
+import uuid
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)  # noqa: E402
 
-from sqlalchemy import text
-from shared.models.database import SessionLocal, engine, Base
-from shared.models.zones import Zone
-from shared.models.users import User
-from shared.auth.jwt import get_password_hash
+from shared.auth.jwt import get_password_hash  # noqa: E402
+from shared.models.database import Base, SessionLocal, engine  # noqa: E402
+from shared.models.users import User  # noqa: E402
+from shared.models.zones import Zone  # noqa: E402
 
 
 def seed_zones(db):
@@ -34,7 +35,10 @@ def seed_zones(db):
         zone = Zone(
             id=uuid.uuid4(),
             name=name,
-            boundary=f"SRID=4326;POLYGON(({lng-0.02} {lat-0.02}, {lng+0.02} {lat-0.02}, {lng+0.02} {lat+0.02}, {lng-0.02} {lat+0.02}, {lng-0.02} {lat-0.02}))",
+            boundary=(
+                f"SRID=4326;POLYGON(({lng-0.02} {lat-0.02}, {lng+0.02} {lat-0.02}, "
+                f"{lng+0.02} {lat+0.02}, {lng-0.02} {lat+0.02}, {lng-0.02} {lat-0.02}))"
+            ),
             police_station=name,
             city="Bengaluru",
         )
@@ -64,12 +68,11 @@ def seed_users(db):
 
 
 def seed_violations_from_csv(db, csv_path):
-    from shared.models.violations import Violation
     from shared.models.cameras import Camera
+    from shared.models.violations import Violation
 
     zones = db.query(Zone).all()
     zone_map = {z.police_station: z for z in zones}
-
     cameras = {}
     batch = []
     count = 0
@@ -84,9 +87,7 @@ def seed_violations_from_csv(db, csv_path):
                 continue
 
             station = row.get("police_station", "Unknown")
-            zone = zone_map.get(station)
-            if not zone:
-                zone = list(zone_map.values())[0]
+            zone = zone_map.get(station) or list(zone_map.values())[0]
 
             ts_str = row.get("created_datetime", "")
             try:
@@ -140,7 +141,12 @@ if __name__ == "__main__":
     try:
         seed_users(db)
         seed_zones(db)
-        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "jan to may police violation_anonymized791b166 (1).csv")
+        csv_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
+            "jan to may police violation_anonymized791b166 (1).csv",
+        )
         if os.path.exists(csv_path):
             seed_violations_from_csv(db, csv_path)
         else:

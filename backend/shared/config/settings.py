@@ -1,8 +1,11 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
     APP_NAME: str = "ParkSight"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
@@ -24,7 +27,6 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW_SECONDS: int = 60
-
     OFFICER_APP_RATE_LIMIT: int = 60
     ANALYTICS_RATE_LIMIT: int = 20
     LOGIN_RATE_LIMIT_ATTEMPTS: int = 5
@@ -37,10 +39,6 @@ class Settings(BaseSettings):
     DETECTION_CONFIDENCE_THRESHOLD: float = 0.5
     FRAME_SAMPLE_INTERVAL_SECONDS: int = 5
     MAX_QUEUE_SIZE: int = 1000
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 @lru_cache()

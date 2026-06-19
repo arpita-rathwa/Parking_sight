@@ -1,8 +1,9 @@
 import uuid
-from sqlalchemy import Column, String, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+
 from geoalchemy2 import Geometry
 from shared.models.database import Base
+from sqlalchemy import Column, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class Camera(Base):

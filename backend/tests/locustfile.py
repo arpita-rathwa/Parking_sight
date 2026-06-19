@@ -1,4 +1,4 @@
-from locust import HttpUser, task, between
+from locust import HttpUser, between, task
 
 
 class ParkSightLoadTest(HttpUser):
@@ -26,7 +26,10 @@ class ParkSightLoadTest(HttpUser):
 
     @task(1)
     def login(self):
-        self.client.post("/api/v1/auth/login", data={
-            "username": "test@parksight.com",
-            "password": "test123",
-        })
+        self.client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": "test@parksight.com",
+                "password": "test123",
+            },
+        )
