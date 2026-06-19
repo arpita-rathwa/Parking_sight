@@ -17,10 +17,6 @@ class FramePreprocessor:
         new_unpad = (int(round(shape[1] * r)), int(round(shape[0] * r)))
         dw = self.target_width - new_unpad[0]
         dh = self.target_height - new_unpad[1]
-        dw, dh = (
-            dw % self.stride,
-            dh % self.stride,
-        )
         if r != 1:
             interpolation = cv2.INTER_LINEAR if r > 1 else cv2.INTER_AREA
             img = cv2.resize(img, new_unpad, interpolation=interpolation)

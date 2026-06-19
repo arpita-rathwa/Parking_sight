@@ -1,6 +1,13 @@
+import sys
+from pathlib import Path
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+DETECTOR_PATH = Path(__file__).resolve().parent.parent / "detection-service"
+if str(DETECTOR_PATH) not in sys.path:
+    sys.path.insert(0, str(DETECTOR_PATH))
 
 TEST_DATABASE_URL = (
     "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight_test"
