@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     DETECTION_CONFIDENCE_THRESHOLD: float = 0.5
     FRAME_SAMPLE_INTERVAL_SECONDS: int = 5
     MAX_QUEUE_SIZE: int = 1000
+    MODEL_PATH: str = "yolov8n.pt"
+    MODEL_INPUT_SIZE: int = 640
+    ENABLE_HALF_PRECISION: bool = True
+    STREAM_CACHE_DIR: str = "/tmp/parksight-frames"
 
 
 @lru_cache()
