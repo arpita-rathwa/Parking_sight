@@ -2,6 +2,7 @@ import json
 from typing import Any, Callable
 
 from kafka import KafkaConsumer
+
 from shared.config.settings import settings
 
 

@@ -2,13 +2,16 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-TEST_DATABASE_URL = "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight_test"
+TEST_DATABASE_URL = (
+    "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight_test"
+)
 
 
 @pytest.fixture(scope="session")
 def test_engine():
     try:
         from shared.models.database import Base
+
         engine = create_engine(TEST_DATABASE_URL)
         Base.metadata.create_all(bind=engine)
         yield engine

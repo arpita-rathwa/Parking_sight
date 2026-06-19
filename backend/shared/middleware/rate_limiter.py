@@ -2,8 +2,9 @@ import time
 from collections import defaultdict
 
 from fastapi import HTTPException, Request
-from shared.config.settings import settings
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from shared.config.settings import settings
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

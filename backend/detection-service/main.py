@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, File, UploadFile
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from shared.auth.jwt import require_role
 from shared.config.settings import settings
 from shared.kafka.producer import producer
@@ -11,7 +13,6 @@ from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
-from sqlalchemy.orm import Session
 
 app = FastAPI(title="detection-service", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)

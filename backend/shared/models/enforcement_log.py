@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 
-from shared.models.database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
+
+from shared.models.database import Base
 
 
 class EnforcementLog(Base):

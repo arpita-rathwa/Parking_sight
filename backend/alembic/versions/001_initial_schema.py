@@ -9,8 +9,9 @@ from typing import Sequence, Union
 
 import geoalchemy2
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
+
+from alembic import op
 
 revision: str = "001"
 down_revision: Union[str, None] = None

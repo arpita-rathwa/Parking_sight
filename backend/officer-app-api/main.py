@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from shared.auth.jwt import require_role
 from shared.config.settings import settings
 from shared.kafka.producer import producer
@@ -12,7 +14,6 @@ from shared.models.database import Base, get_db, get_engine
 from shared.models.enforcement_log import EnforcementLog
 from shared.models.users import User
 from shared.models.zones import Zone
-from sqlalchemy.orm import Session
 
 app = FastAPI(title="officer-app-api", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)

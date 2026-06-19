@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, Query
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
 from shared.auth.jwt import require_role
 from shared.config.settings import settings
 from shared.middleware.logging import StructuredLoggingMiddleware
@@ -9,8 +12,6 @@ from shared.models.congestion_scores import CongestionScore
 from shared.models.database import Base, get_db, get_engine
 from shared.models.zones import Zone
 from shared.redis.client import redis_client
-from sqlalchemy import desc, func
-from sqlalchemy.orm import Session
 
 app = FastAPI(title="queue-service", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)

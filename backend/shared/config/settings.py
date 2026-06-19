@@ -10,7 +10,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
-    DATABASE_URL: str = "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight"
+    DATABASE_URL: str = (
+        "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight"
+    )
     REDIS_URL: str = "redis://localhost:6379/0"
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
 

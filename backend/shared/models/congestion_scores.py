@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 
-from shared.models.database import Base
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
+
+from shared.models.database import Base
 
 
 class CongestionScore(Base):

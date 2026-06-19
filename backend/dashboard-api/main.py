@@ -2,6 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from sqlalchemy import Date, cast, func
+from sqlalchemy.orm import Session
+
 from shared.auth.jwt import require_role
 from shared.config.settings import settings
 from shared.middleware.logging import StructuredLoggingMiddleware
@@ -11,8 +14,6 @@ from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
 from shared.models.zones import Zone
 from shared.redis.client import redis_client
-from sqlalchemy import Date, cast, func
-from sqlalchemy.orm import Session
 
 app = FastAPI(title="dashboard-api", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)

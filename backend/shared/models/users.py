@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 
-from shared.models.database import Base
 from sqlalchemy import Boolean, Column, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
+
+from shared.models.database import Base
 
 
 class User(Base):

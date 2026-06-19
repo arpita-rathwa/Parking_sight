@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
+
 from shared.auth.jwt import (
     ROLES,
     create_access_token,
@@ -13,7 +15,6 @@ from shared.auth.jwt import (
 from shared.config.settings import settings
 from shared.models.database import get_db
 from shared.models.users import User
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix=f"{settings.API_V1_PREFIX}/auth", tags=["auth"])
 

@@ -2,6 +2,7 @@ import asyncio
 import threading
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
 from shared.config.settings import settings
 from shared.kafka.consumer import create_consumer
 from shared.kafka.topics import KAFKA_TOPICS

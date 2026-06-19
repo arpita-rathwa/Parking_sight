@@ -2,6 +2,7 @@ import json
 from typing import Any, Optional
 
 from kafka import KafkaProducer
+
 from shared.config.settings import settings
 
 
