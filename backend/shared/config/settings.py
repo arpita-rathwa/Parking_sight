@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     MODEL_INPUT_SIZE: int = 640
     ENABLE_HALF_PRECISION: bool = True
     STREAM_CACHE_DIR: str = "/tmp/parksight-frames"
+    BATCH_INTERVAL: float = 2.0
 
 
 @lru_cache()

@@ -1,5 +1,6 @@
 from typing import Callable
 
+import numpy as np
 from detector.types import CameraConfig
 from stream.camera import CameraStream
 
@@ -64,6 +65,14 @@ class StreamManager:
         stream = self._cameras.get(camera_id)
         if stream is not None:
             stream.set_on_frame_callback(callback)
+
+    def get_latest_frames(self) -> dict[str, np.ndarray]:
+        frames = {}
+        for cid, stream in self._cameras.items():
+            frame = stream.latest_frame
+            if frame is not None:
+                frames[cid] = frame
+        return frames
 
     def get_all_stats(self) -> list[dict]:
         return [s.get_reconnect_stats() for s in self._cameras.values()]

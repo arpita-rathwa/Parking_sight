@@ -5,8 +5,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 from detector.model import DetectionModel
-from detector.types import CameraConfig, VehicleType
+from detector.types import CameraConfig, DetectionResult, VehicleType
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from pipeline.batcher import BatchInferencePipeline
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from stream.manager import StreamManager
@@ -26,11 +27,12 @@ app.add_middleware(StructuredLoggingMiddleware)
 
 model: DetectionModel | None = None
 stream_manager: StreamManager = StreamManager()
+pipeline: BatchInferencePipeline | None = None
 
 
 @app.on_event("startup")
 def on_startup():
-    global model
+    global model, pipeline
     Base.metadata.create_all(bind=get_engine())
     model = DetectionModel(
         model_path=settings.MODEL_PATH,
@@ -39,15 +41,16 @@ def on_startup():
         half_precision=settings.ENABLE_HALF_PRECISION,
     )
     model.load()
+    pipeline = BatchInferencePipeline(model=model, interval=settings.BATCH_INTERVAL)
     if settings.STREAM_CACHE_DIR:
         Path(settings.STREAM_CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
 
 @app.on_event("shutdown")
 def on_shutdown():
+    if pipeline is not None:
+        pipeline.stop()
     stream_manager.stop_all()
-    if model is not None and model.is_loaded():
-        pass
 
 
 class DetectionResponse(BaseModel):
@@ -177,6 +180,20 @@ async def detect_violation(
     return {"detections": results, "count": len(results)}
 
 
+def _pipeline_callback(camera_id: str, detections: list[DetectionResult]) -> None:
+    for det in detections:
+        try:
+            _publish_detection(
+                camera_id=camera_id,
+                vehicle_type=det.vehicle_type,
+                confidence=det.confidence,
+                latitude=0.0,
+                longitude=0.0,
+            )
+        except Exception:
+            pass
+
+
 @app.post(f"{settings.API_V1_PREFIX}/detect/stream/start")
 async def start_stream(
     req: StreamStartRequest,
@@ -184,6 +201,8 @@ async def start_stream(
 ):
     if model is None or not model.is_loaded():
         raise HTTPException(status_code=503, detail="Model not loaded")
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Pipeline not initialized")
 
     config = CameraConfig(
         camera_id=req.camera_id,
@@ -198,24 +217,10 @@ async def start_stream(
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    def on_frame(camera_id: str, frame: np.ndarray):
-        if model is None:
-            return
-        try:
-            detections = model.predict_single(frame)
-            for det in detections:
-                _publish_detection(
-                    camera_id=camera_id,
-                    vehicle_type=det.vehicle_type,
-                    confidence=det.confidence,
-                    latitude=req.latitude,
-                    longitude=req.longitude,
-                )
-        except Exception:
-            pass
-
-    stream.set_on_frame_callback(on_frame)
+    pipeline.set_callback(req.camera_id, _pipeline_callback)
     stream.start()
+    if not pipeline.is_running:
+        pipeline.start(stream_manager.get_latest_frames)
 
     return {
         "status": "started",
@@ -230,6 +235,10 @@ async def stop_stream(
     current_user=Depends(require_role("admin", "operator")),
 ):
     stream_manager.stop_camera(camera_id)
+    if pipeline is not None:
+        pipeline.remove_callback(camera_id)
+        if not pipeline.active_callbacks:
+            pipeline.stop()
     return {
         "status": "stopped",
         "camera_id": camera_id,
