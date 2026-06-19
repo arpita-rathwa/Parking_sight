@@ -8,31 +8,36 @@ def _frame(height=480, width=640) -> np.ndarray:
 
 def test_preprocess_output_shape():
     pre = FramePreprocessor(target_size=(640, 640))
-    result = pre.preprocess(_frame(480, 640))
-    assert result.shape == (1, 3, 640, 640)
-    assert result.dtype == np.float32
-    assert 0.0 <= result.min() <= result.max() <= 1.0
+    tensor, scale, pad = pre.preprocess(_frame(480, 640))
+    assert tensor.shape == (1, 3, 640, 640)
+    assert tensor.dtype == np.float32
+    assert 0.0 <= tensor.min() <= tensor.max() <= 1.0
+    assert 0 < scale[0] <= 1
+    assert pad[0] >= 0 and pad[1] >= 0
 
 
 def test_preprocess_gray_input():
     pre = FramePreprocessor(target_size=(640, 640))
     gray = np.random.randint(0, 255, (480, 640), dtype=np.uint8)
-    result = pre.preprocess(gray)
-    assert result.shape == (1, 3, 640, 640)
+    tensor, _, _ = pre.preprocess(gray)
+    assert tensor.shape == (1, 3, 640, 640)
 
 
 def test_preprocess_rgba_input():
     pre = FramePreprocessor(target_size=(640, 640))
     rgba = np.random.randint(0, 255, (480, 640, 4), dtype=np.uint8)
-    result = pre.preprocess(rgba)
-    assert result.shape == (1, 3, 640, 640)
+    tensor, _, _ = pre.preprocess(rgba)
+    assert tensor.shape == (1, 3, 640, 640)
 
 
 def test_batch_preprocess():
     pre = FramePreprocessor(target_size=(640, 640))
     frames = [_frame(480, 640) for _ in range(2)]
-    result = pre.preprocess_batch(frames)
-    assert result.shape == (2, 3, 640, 640)
+    batch, scales, pads, shapes = pre.preprocess_batch(frames)
+    assert batch.shape == (2, 3, 640, 640)
+    assert len(scales) == 2
+    assert len(pads) == 2
+    assert shapes == [(480, 640), (480, 640)]
 
 
 def test_letterbox_maintains_aspect_ratio():
@@ -52,9 +57,9 @@ def test_letterbox_small_image():
 
 def test_stride_alignment():
     pre = FramePreprocessor(target_size=(640, 640), stride=32)
-    result = pre.preprocess(_frame(480, 640))
-    assert result.shape[2] % 32 == 0
-    assert result.shape[3] % 32 == 0
+    tensor, _, _ = pre.preprocess(_frame(480, 640))
+    assert tensor.shape[2] % 32 == 0
+    assert tensor.shape[3] % 32 == 0
 
 
 def test_empty_batch():

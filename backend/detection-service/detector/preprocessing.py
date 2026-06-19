@@ -27,17 +27,34 @@ class FramePreprocessor:
         )
         return img, (r, r), (dw / 2, dh / 2)
 
-    def preprocess(self, frame: np.ndarray) -> np.ndarray:
+    def preprocess(
+        self, frame: np.ndarray
+    ) -> tuple[np.ndarray, tuple[float, float], tuple[float, float]]:
         if frame.ndim == 2:
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         if frame.shape[2] == 4:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
-        img, _, _ = self.letterbox(frame)
+        img, scale, pad = self.letterbox(frame)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img.astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))
         img = np.expand_dims(img, axis=0)
-        return img
+        return img, scale, pad
 
-    def preprocess_batch(self, frames: list[np.ndarray]) -> np.ndarray:
-        return np.concatenate([self.preprocess(f) for f in frames], axis=0)
+    def preprocess_batch(self, frames: list[np.ndarray]) -> tuple[
+        np.ndarray,
+        list[tuple[float, float]],
+        list[tuple[float, float]],
+        list[tuple[int, int]],
+    ]:
+        tensors = []
+        scales = []
+        pads = []
+        shapes = []
+        for f in frames:
+            shapes.append(f.shape[:2])
+            t, s, p = self.preprocess(f)
+            tensors.append(t)
+            scales.append(s)
+            pads.append(p)
+        return np.concatenate(tensors, axis=0), scales, pads, shapes

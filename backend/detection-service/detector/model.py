@@ -27,6 +27,13 @@ class DetectionModel:
             confidence_threshold=confidence_threshold,
             iou_threshold=iou_threshold,
         )
+        self._stream: torch.cuda.Stream | None = None
+
+    @property
+    def stream(self) -> torch.cuda.Stream | None:
+        if self.device == "cuda" and self._stream is None:
+            self._stream = torch.cuda.Stream(device=self.device)
+        return self._stream
 
     def load(self) -> None:
         from ultralytics import YOLO
@@ -39,9 +46,18 @@ class DetectionModel:
                     self.model.half()
                 except Exception:
                     self.model.float()
+            self._warmup()
         else:
             self.model.to("cpu")
             self.model.float()
+
+    def _warmup(self) -> None:
+        dummy = np.zeros(
+            (self.preprocessor.target_height, self.preprocessor.target_width, 3),
+            dtype=np.uint8,
+        )
+        with torch.cuda.amp.autocast(enabled=self.half_precision):
+            self.predict([dummy])
 
     def is_loaded(self) -> bool:
         return self.model is not None
@@ -49,17 +65,31 @@ class DetectionModel:
     def predict(self, frames: list[np.ndarray]) -> list[list[DetectionResult]]:
         if not self.is_loaded():
             raise RuntimeError("Model not loaded. Call load() first.")
-        all_results = []
-        for frame in frames:
-            original_shape = frame.shape[:2]
-            preprocessed = self.preprocessor.preprocess(frame)
-            preprocessed_tensor = torch.from_numpy(preprocessed).to(self.device)
-            if self.half_precision and self.device == "cuda":
-                preprocessed_tensor = preprocessed_tensor.half()
-            results = self.model(preprocessed_tensor, verbose=False)
-            raw_boxes = results[0].boxes
-            if raw_boxes is None or len(raw_boxes) == 0:
-                all_results.append([])
+        if not frames:
+            return []
+
+        batch_tensor, scales, pads, shapes = self.preprocessor.preprocess_batch(frames)
+        tensor = torch.from_numpy(batch_tensor).to(self.device)
+
+        if self.device == "cuda":
+            if self.half_precision:
+                tensor = tensor.half()
+            stream = self.stream
+            if stream is not None:
+                with torch.cuda.stream(stream):
+                    with torch.cuda.amp.autocast(enabled=self.half_precision):
+                        raw_results = self.model(tensor, verbose=False)
+                    stream.synchronize()
+            else:
+                with torch.cuda.amp.autocast(enabled=self.half_precision):
+                    raw_results = self.model(tensor, verbose=False)
+        else:
+            raw_results = self.model(tensor, verbose=False)
+
+        parsed: list[list[DetectionResult]] = []
+        for i, raw in enumerate(raw_results):
+            if raw.boxes is None or len(raw.boxes) == 0:
+                parsed.append([])
                 continue
             boxes = [
                 BoundingBox(
@@ -71,19 +101,19 @@ class DetectionModel:
                     class_id=int(cls),
                 )
                 for b, c, cls in zip(
-                    raw_boxes.xyxy.cpu().numpy(),
-                    raw_boxes.conf.cpu().numpy(),
-                    raw_boxes.cls.cpu().numpy(),
+                    raw.boxes.xyxy.cpu().numpy(),
+                    raw.boxes.conf.cpu().numpy(),
+                    raw.boxes.cls.cpu().numpy(),
                 )
             ]
             detections = self.postprocessor.process(
                 boxes,
-                original_shape=original_shape,
-                scale=self.preprocessor.letterbox(frame)[1],
-                pad=self.preprocessor.letterbox(frame)[2],
+                original_shape=shapes[i],
+                scale=scales[i],
+                pad=pads[i],
             )
-            all_results.append(detections)
-        return all_results
+            parsed.append(detections)
+        return parsed
 
     def predict_single(self, frame: np.ndarray) -> list[DetectionResult]:
         return self.predict([frame])[0]
