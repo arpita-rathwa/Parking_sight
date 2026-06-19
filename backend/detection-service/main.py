@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +15,7 @@ from sqlalchemy.orm import Session
 from stream.manager import StreamManager
 
 from shared.auth.jwt import require_role
+from shared.auth.routes import router as auth_router
 from shared.config.settings import settings
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
@@ -21,13 +24,17 @@ from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
 
+logger = logging.getLogger("detection-service")
+
 app = FastAPI(title="detection-service", version="1.0.0")
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(StructuredLoggingMiddleware)
+app.include_router(auth_router)
 
 model: DetectionModel | None = None
 stream_manager: StreamManager = StreamManager()
 pipeline: BatchInferencePipeline | None = None
+_executor: asyncio.AbstractEventLoop | None = None
 
 
 @app.on_event("startup")
@@ -112,6 +119,9 @@ def _publish_detection(
         )
         db.add(violation)
         db.commit()
+    except Exception:
+        logger.exception("Failed to persist violation")
+        raise
     finally:
         if close_session:
             db.close()
@@ -126,7 +136,13 @@ def _publish_detection(
         "vehicle_type": vehicle_type.value,
         "violation_type": violation_type,
     }
-    producer.send(KAFKA_TOPICS["violations_raw"], key=str(violation_id), value=event)
+    kafka_ok = producer.send(
+        KAFKA_TOPICS["violations_raw"], key=str(violation_id), value=event
+    )
+    if not kafka_ok:
+        logger.warning(
+            "Kafka unreachable — violation %s persisted to DB only", violation_id
+        )
     return str(violation_id)
 
 
@@ -146,7 +162,8 @@ async def detect_violation(
         raise HTTPException(status_code=400, detail="Image file required")
 
     frame = _decode_image(file)
-    detections = model.predict_single(frame)
+    loop = asyncio.get_event_loop()
+    detections = await loop.run_in_executor(None, model.predict_single, frame)
 
     if not detections:
         return {
@@ -156,14 +173,18 @@ async def detect_violation(
 
     results = []
     for det in detections:
-        vid = _publish_detection(
-            camera_id=camera_id,
-            vehicle_type=det.vehicle_type,
-            confidence=det.confidence,
-            latitude=latitude,
-            longitude=longitude,
-            db=db,
-        )
+        try:
+            vid = _publish_detection(
+                camera_id=camera_id,
+                vehicle_type=det.vehicle_type,
+                confidence=det.confidence,
+                latitude=latitude,
+                longitude=longitude,
+                db=db,
+            )
+        except Exception:
+            logger.exception("Failed to publish detection")
+            raise HTTPException(status_code=503, detail="Database unavailable")
         results.append(
             DetectionResponse(
                 id=vid,

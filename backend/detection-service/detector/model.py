@@ -1,3 +1,5 @@
+from threading import Lock
+
 import numpy as np
 import torch
 from detector.postprocessing import DetectionPostprocessor
@@ -28,6 +30,7 @@ class DetectionModel:
             iou_threshold=iou_threshold,
         )
         self._stream: torch.cuda.Stream | None = None
+        self._lock = Lock()
 
     @property
     def stream(self) -> torch.cuda.Stream | None:
@@ -71,20 +74,21 @@ class DetectionModel:
         batch_tensor, scales, pads, shapes = self.preprocessor.preprocess_batch(frames)
         tensor = torch.from_numpy(batch_tensor).to(self.device)
 
-        if self.device == "cuda":
-            if self.half_precision:
-                tensor = tensor.half()
-            stream = self.stream
-            if stream is not None:
-                with torch.cuda.stream(stream):
+        with self._lock:
+            if self.device == "cuda":
+                if self.half_precision:
+                    tensor = tensor.half()
+                stream = self.stream
+                if stream is not None:
+                    with torch.cuda.stream(stream):
+                        with torch.cuda.amp.autocast(enabled=self.half_precision):
+                            raw_results = self.model(tensor, verbose=False)
+                        stream.synchronize()
+                else:
                     with torch.cuda.amp.autocast(enabled=self.half_precision):
                         raw_results = self.model(tensor, verbose=False)
-                    stream.synchronize()
             else:
-                with torch.cuda.amp.autocast(enabled=self.half_precision):
-                    raw_results = self.model(tensor, verbose=False)
-        else:
-            raw_results = self.model(tensor, verbose=False)
+                raw_results = self.model(tensor, verbose=False)
 
         parsed: list[list[DetectionResult]] = []
         for i, raw in enumerate(raw_results):

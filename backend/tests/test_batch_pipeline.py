@@ -1,8 +1,6 @@
 import numpy as np
-import pytest
-
-from pipeline.batcher import BatchInferencePipeline
 from detector.types import BoundingBox, DetectionResult
+from pipeline.batcher import BatchInferencePipeline
 
 
 class _FakeModel:
@@ -12,7 +10,13 @@ class _FakeModel:
     def predict(self, frames):
         self.called_with = frames
         return [
-            [DetectionResult(bbox=BoundingBox(x1=0, y1=0, x2=10, y2=10, confidence=0.9, class_id=3))],
+            [
+                DetectionResult(
+                    bbox=BoundingBox(
+                        x1=0, y1=0, x2=10, y2=10, confidence=0.9, class_id=3
+                    )
+                )
+            ],
             [],
         ]
 
