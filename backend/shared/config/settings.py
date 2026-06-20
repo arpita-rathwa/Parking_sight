@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     FRAME_MAX_AGE_SECONDS: float = 10.0
     ENABLE_MODEL_HOT_RELOAD: bool = False
     MODEL_WATCH_INTERVAL: float = 10.0
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 5
 
 
 @lru_cache()

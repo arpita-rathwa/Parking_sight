@@ -129,8 +129,17 @@ class CameraStream:
 
     def stop(self) -> None:
         self._stop_event.set()
+        if self._cap is not None:
+            try:
+                self._cap.release()
+            except Exception:
+                pass
         if self._thread is not None:
             self._thread.join(timeout=5)
+            if self._thread.is_alive():
+                logging.getLogger("camera").warning(
+                    "Camera %s thread did not exit within timeout", self.camera_id
+                )
             self._thread = None
         with self._lock:
             self._latest_frame = None

@@ -5,7 +5,11 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DETECTOR_PATH = Path(__file__).resolve().parent.parent / "services" / "detection"
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+DETECTOR_PATH = BACKEND_ROOT / "services" / "detection"
 if str(DETECTOR_PATH) not in sys.path:
     sys.path.insert(0, str(DETECTOR_PATH))
 
