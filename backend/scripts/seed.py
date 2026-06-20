@@ -5,20 +5,20 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 
-sys.path.insert(
+sys.path.insert(                                                      # noqa: E402
     0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 
-from sqlalchemy import text
+from sqlalchemy import text                                           # noqa: E402
 
-from shared.auth.jwt import get_password_hash
-from shared.models.cameras import Camera
-from shared.models.congestion_scores import CongestionScore
-from shared.models.database import Base, get_engine, get_session
-from shared.models.enforcement_log import EnforcementLog
-from shared.models.users import User
-from shared.models.violations import Violation
-from shared.models.zones import Zone
+from shared.auth.jwt import get_password_hash                         # noqa: E402
+from shared.models.cameras import Camera                               # noqa: E402
+from shared.models.congestion_scores import CongestionScore             # noqa: E402
+from shared.models.database import Base, get_engine, get_session        # noqa: E402
+from shared.models.enforcement_log import EnforcementLog                # noqa: E402
+from shared.models.users import User                                   # noqa: E402
+from shared.models.violations import Violation                          # noqa: E402
+from shared.models.zones import Zone                                    # noqa: E402
 
 
 def clear_data(db):
