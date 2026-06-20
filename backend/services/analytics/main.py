@@ -478,15 +478,19 @@ async def get_analytics_radar(
             continue
 
         max_vals = {"violations": 100, "speed": 100, "density": 100, "weather": 2.0, "impact": 100}
+
+        def _factor(val, max_v, default):
+            return round(min(float(val) / max_v * 100, 100)) if val else default
+
         results.append({
             "zone_id": str(zid),
             "zone_name": zone_labels.get(str(zid), "Unknown"),
             "factors": {
-                "Violations": round(min(float(scores.avg_violations) / max_vals["violations"] * 100, 100) if scores.avg_violations else 50),
-                "Speed": round(min(float(scores.avg_speed_drop) / max_vals["speed"] * 100, 100) if scores.avg_speed_drop else 50),
-                "Rush Hour": round(min(float(scores.avg_density) / max_vals["density"] * 100, 100) if scores.avg_density else 50),
-                "History": round(min(float(scores.avg_impact), 100) if scores.avg_impact else 50),
-                "Weather": round(min(float(scores.avg_weather) / max_vals["weather"] * 100, 100) if scores.avg_weather else 30),
+                "Violations": _factor(scores.avg_violations, max_vals["violations"], 50),
+                "Speed": _factor(scores.avg_speed_drop, max_vals["speed"], 50),
+                "Rush Hour": _factor(scores.avg_density, max_vals["density"], 50),
+                "History": round(min(float(scores.avg_impact), 100)) if scores.avg_impact else 50,
+                "Weather": _factor(scores.avg_weather, max_vals["weather"], 30),
             },
         })
 
