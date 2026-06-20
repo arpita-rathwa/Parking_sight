@@ -11,6 +11,7 @@ from shared.config.settings import settings
 from shared.kafka.consumer import create_consumer
 from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.utils.dependencies import get_dependency_report
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
@@ -125,4 +126,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
-    return {"status": "ok", "service": "alerts-service"}
+    deps = get_dependency_report()
+    all_healthy = all(d["status"] == "healthy" for d in deps.values())
+    return {
+        "status": "ok" if all_healthy else "degraded",
+        "service": "alerts-service",
+        "dependencies": deps,
+    }

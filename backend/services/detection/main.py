@@ -31,6 +31,7 @@ from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.cameras import Camera
 from shared.models.database import get_db, get_session
 from shared.models.violations import Violation
+from shared.utils.dependencies import get_dependency_report
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
@@ -92,6 +93,21 @@ def on_startup():
         Path(settings.STREAM_CACHE_DIR).mkdir(parents=True, exist_ok=True)
     _start_buffer_flush_thread()
     _start_dlq_consumer()
+    _log_dependency_status()
+
+
+def _log_dependency_status() -> None:
+    deps = get_dependency_report()
+    degraded = [
+        name for name, info in deps.items() if info["status"] != "healthy"
+    ]
+    if degraded:
+        logger.warning(
+            "Service starting in degraded mode — dependencies down: %s",
+            ", ".join(degraded),
+        )
+    else:
+        logger.info("All dependencies healthy")
 
 
 def _dlq_consumer_loop() -> None:
@@ -159,6 +175,40 @@ class StreamStartRequest(BaseModel):
     longitude: float = 0.0
     frame_interval: int = 5
     roi_polygon: list[list[float]] | None = None
+
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_IMAGE_SIZE_MB = 10
+MAX_IMAGE_DIMENSION = 4096
+
+
+def _validate_upload(file: UploadFile) -> None:
+    if file.content_type and file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type: {file.content_type}. "
+            f"Allowed: {', '.join(sorted(ALLOWED_IMAGE_TYPES))}",
+        )
+    max_bytes = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > max_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image too large: {size / 1024 / 1024:.1f}MB "
+            f"(max {MAX_IMAGE_SIZE_MB}MB)",
+        )
+
+
+def _validate_frame(frame: np.ndarray) -> None:
+    h, w = frame.shape[:2]
+    if h > MAX_IMAGE_DIMENSION or w > MAX_IMAGE_DIMENSION:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image dimensions {w}x{h} exceed maximum "
+            f"{MAX_IMAGE_DIMENSION}x{MAX_IMAGE_DIMENSION}",
+        )
 
 
 def _decode_image(file: UploadFile) -> np.ndarray:
@@ -308,7 +358,9 @@ async def detect_violation(
     if file is None:
         raise HTTPException(status_code=400, detail="Image file required")
 
+    _validate_upload(file)
     frame = _decode_image(file)
+    _validate_frame(frame)
     loop = asyncio.get_event_loop()
     inference_start = time.time()
     detections = await loop.run_in_executor(None, model.predict_single, frame)
@@ -469,9 +521,14 @@ def metrics():
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
+    deps = get_dependency_report()
+    all_healthy = all(
+        d["status"] == "healthy" for d in deps.values()
+    )
     return {
-        "status": "ok",
+        "status": "ok" if all_healthy else "degraded",
         "service": "detection-service",
         "model_loaded": model.is_loaded() if model else False,
         "active_streams": stream_manager.camera_count,
+        "dependencies": deps,
     }
