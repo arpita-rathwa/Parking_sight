@@ -24,7 +24,6 @@ class MLScoringEngine:
     def load(self) -> bool:
         try:
             import lightgbm as lgb
-            import pandas as pd
         except ImportError:
             logger.warning("lightgbm not installed — ML scoring unavailable")
             return False

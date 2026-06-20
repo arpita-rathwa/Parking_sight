@@ -1,4 +1,3 @@
-import json
 import logging
 import threading
 import time
@@ -6,7 +5,6 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from shared.config.settings import settings
 from shared.kafka.consumer import create_consumer
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
