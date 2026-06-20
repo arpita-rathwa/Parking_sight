@@ -24,7 +24,7 @@ cp backend/.env.example backend/.env
 # 2. Deploy (CI/CD handles this automatically on main branch push)
 #    Or manually:
 cd backend
-docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # 3. Seed once (if first deploy)
 docker compose run --rm seed
@@ -37,7 +37,7 @@ Requires: ECR images pushed, RDS PostgreSQL, ElastiCache Redis, MSK Kafka.
 ```bash
 # 1. Build and push images (CI/CD does this)
 cd backend
-docker build -f Dockerfile.shared -t $ECR/parksight:latest-queue .
+docker build -f Dockerfile.base -t $ECR/parksight:latest-dispatch .
 docker build -f services/detection/Dockerfile -t $ECR/parksight:latest-detection .
 # ... repeat for all services
 

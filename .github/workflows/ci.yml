@@ -111,10 +111,10 @@ jobs:
           declare -A dockerfiles=(
             ["detection"]="services/detection/Dockerfile"
             ["scoring"]="services/scoring/Dockerfile"
-            ["queue"]="Dockerfile.shared"
-            ["notification"]="Dockerfile.shared"
-            ["dashboard"]="Dockerfile.shared"
-            ["officer-app"]="Dockerfile.shared"
+            ["dispatch"]="Dockerfile.base"
+            ["alerts"]="Dockerfile.base"
+            ["analytics"]="Dockerfile.base"
+            ["officers"]="Dockerfile.base"
           )
           for service in "${!dockerfiles[@]}"; do
             df=${dockerfiles[$service]}
@@ -146,7 +146,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /opt/Parking_sight/backend
+            cd /opt/parksight/backend
             git pull origin main
             export DOMAIN=${DOMAIN:-parksight.example.com}
             docker compose pull

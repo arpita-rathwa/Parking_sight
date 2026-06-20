@@ -4,8 +4,8 @@ RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/li
 
 WORKDIR /app
 
-COPY requirements.base.txt .
-RUN pip install --no-cache-dir -r requirements.base.txt
+COPY requirements.common.txt .
+RUN pip install --no-cache-dir -r requirements.common.txt
 
 COPY shared/ ./shared/
 COPY services/ ./services/

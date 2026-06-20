@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     aws_region: str = "ap-south-1"
 
     # ---- database ---------------------------------------------------------
-    database_url: str = "sqlite:///./parksight_ml.db"
+    database_url: str = "postgresql+psycopg2://parksight:parksight@postgres:5432/parksight"
 
     # ---- kafka (optional in demo) ----------------------------------------
     kafka_bootstrap: str | None = None

@@ -19,7 +19,7 @@ from shared.models.zones import Zone
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
-app = FastAPI(title="officer-app-api", version="1.0.0")
+app = FastAPI(title="officers-api", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
@@ -96,7 +96,7 @@ async def update_status(
     elif update.status == "resolved":
         log.resolved_at = now
         log.outcome = "resolved"
-    elif update.status == "unresolvable":
+    el    if update.status == "unresolvable":
         log.resolved_at = now
         log.outcome = "unresolvable"
     else:
@@ -114,6 +114,20 @@ async def update_status(
     }
     producer.send(KAFKA_TOPICS["enforcement_updates"], key=str(log.id), value=event)
 
+    if update.status == "unresolvable":
+        feedback_event = {
+            "event": "officer.feedback",
+            "schema_version": 1,
+            "feedback_id": str(log.id),
+            "violation_id": str(log.zone_id),
+            "officer_id": str(current_user.id),
+            "zone_id": str(log.zone_id),
+            "status": "unresolvable",
+            "reason": update.notes,
+            "timestamp": now.isoformat(),
+        }
+        producer.send(KAFKA_TOPICS["officer_feedback"], key=str(log.id), value=feedback_event)
+
     return {
         "status": "updated",
         "assignment_id": str(log.id),
@@ -123,4 +137,4 @@ async def update_status(
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
-    return {"status": "ok", "service": "officer-app-api"}
+    return {"status": "ok", "service": "officers-api"}

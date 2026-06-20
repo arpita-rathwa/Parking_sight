@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY requirements.base.txt requirements.detection.txt ./
-RUN pip install --no-cache-dir -r requirements.base.txt -r requirements.detection.txt
+COPY requirements.common.txt requirements.detection.txt ./
+RUN pip install --no-cache-dir -r requirements.common.txt -r requirements.detection.txt
 
 COPY shared/ ./shared/
 COPY services/detection/ ./services/detection/

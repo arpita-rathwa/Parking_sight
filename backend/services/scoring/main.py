@@ -1,4 +1,5 @@
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from shared.auth.jwt import require_role
 from shared.config.settings import settings
+from shared.kafka.consumer import create_consumer
+from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.congestion_scores import CongestionScore
@@ -18,6 +21,7 @@ from shared.redis.client import redis_client
 from shared.auth.routes import router as auth_router
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
+from services.scoring.ml_model.engine import reload_scoring_engine
 from services.scoring.worker import start_worker, stop_worker
 
 logger = logging.getLogger("scoring-service")
@@ -50,6 +54,23 @@ async def init_redis():
 def start_scoring_worker():
     logger.info("Starting scoring worker...")
     start_worker()
+
+
+@app.on_event("startup")
+def start_model_promoted_consumer():
+    def _consume():
+        consumer = create_consumer(KAFKA_TOPICS["model_promoted"], "scoring-model-group")
+        try:
+            for msg in consumer:
+                logger.info("Model promoted event received: %s", msg.value.get("model_version"))
+                ok = reload_scoring_engine()
+                logger.info("Scoring engine reloaded: %s", ok)
+        except Exception:
+            logger.exception("Model promoted consumer error")
+        finally:
+            consumer.close()
+
+    threading.Thread(target=_consume, daemon=True, name="model-promoted-consumer").start()
 
 
 @app.on_event("shutdown")

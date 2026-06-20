@@ -80,8 +80,8 @@
       }
     },
     {
-      "name": "queue",
-      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-queue",
+      "name": "dispatch",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-dispatch",
       "cpu": 256,
       "memory": 512,
       "essential": true,
@@ -90,7 +90,7 @@
         { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
         { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
         { "name": "JWT_SECRET_KEY", "value": "" },
-        { "name": "SERVICE_NAME", "value": "queue" },
+        { "name": "SERVICE_NAME", "value": "dispatch" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
       "logConfiguration": {
@@ -98,13 +98,13 @@
         "options": {
           "awslogs-group": "parksight",
           "awslogs-region": "ap-south-1",
-          "awslogs-stream-prefix": "queue"
+          "awslogs-stream-prefix": "dispatch"
         }
       }
     },
     {
-      "name": "dashboard",
-      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-dashboard",
+      "name": "analytics",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-analytics",
       "cpu": 256,
       "memory": 512,
       "essential": true,
@@ -114,7 +114,7 @@
         { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
         { "name": "JWT_SECRET_KEY", "value": "" },
         { "name": "CORS_ORIGINS", "value": "https://parksight.example.com" },
-        { "name": "SERVICE_NAME", "value": "dashboard" },
+        { "name": "SERVICE_NAME", "value": "analytics" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
       "logConfiguration": {
@@ -122,13 +122,13 @@
         "options": {
           "awslogs-group": "parksight",
           "awslogs-region": "ap-south-1",
-          "awslogs-stream-prefix": "dashboard"
+          "awslogs-stream-prefix": "analytics"
         }
       }
     },
     {
-      "name": "officer-app",
-      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-officer-app",
+      "name": "officers",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-officers",
       "cpu": 256,
       "memory": 512,
       "essential": true,
@@ -138,7 +138,7 @@
         { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
         { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
         { "name": "JWT_SECRET_KEY", "value": "" },
-        { "name": "SERVICE_NAME", "value": "officer-app" },
+        { "name": "SERVICE_NAME", "value": "officers" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
       "logConfiguration": {
@@ -146,13 +146,13 @@
         "options": {
           "awslogs-group": "parksight",
           "awslogs-region": "ap-south-1",
-          "awslogs-stream-prefix": "officer-app"
+          "awslogs-stream-prefix": "officers"
         }
       }
     },
     {
-      "name": "notification",
-      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-notification",
+      "name": "alerts",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-alerts",
       "cpu": 256,
       "memory": 512,
       "essential": true,
@@ -160,7 +160,7 @@
       "environment": [
         { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
         { "name": "JWT_SECRET_KEY", "value": "" },
-        { "name": "SERVICE_NAME", "value": "notification" },
+        { "name": "SERVICE_NAME", "value": "alerts" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
       "logConfiguration": {
@@ -168,7 +168,7 @@
         "options": {
           "awslogs-group": "parksight",
           "awslogs-region": "ap-south-1",
-          "awslogs-stream-prefix": "notification"
+          "awslogs-stream-prefix": "alerts"
         }
       }
     }

@@ -6,6 +6,9 @@ KAFKA_TOPICS = {
     "alerts": "alerts",
     "enforcement_updates": "enforcement.updates",
     "system_events": "system.events",
+    "officer_feedback": "officer.feedback",
+    "model_promoted": "model.promoted",
+    "hotspot_predictions": "hotspot.predictions",
 }
 
 PARTITIONS = 3

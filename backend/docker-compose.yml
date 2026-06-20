@@ -37,10 +37,11 @@ services:
       - frontend
       - detection-service
       - scoring-service
-      - queue-service
-      - dashboard-api
-      - officer-app-api
-      - notification-service
+      - dispatch-service
+      - analytics-api
+      - officers-api
+      - alerts-service
+      - ml-platform-api
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -148,10 +149,10 @@ services:
       - "traefik.http.routers.scoring.entrypoints=web"
       - "traefik.http.services.scoring.loadbalancer.server.port=8002"
 
-  queue-service:
+  dispatch-service:
     build:
       context: .
-      dockerfile: Dockerfile.shared
+      dockerfile: Dockerfile.base
     command: uvicorn main:app --host 0.0.0.0 --port 8003
     expose:
       - "8003"
@@ -162,17 +163,17 @@ services:
         condition: service_healthy
     environment:
       <<: *common-env
-      SERVICE_NAME: queue
+      SERVICE_NAME: dispatch
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.queue.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/dispatch`)"
-      - "traefik.http.routers.queue.entrypoints=web"
-      - "traefik.http.services.queue.loadbalancer.server.port=8003"
+      - "traefik.http.routers.dispatch.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/dispatch`)"
+      - "traefik.http.routers.dispatch.entrypoints=web"
+      - "traefik.http.services.dispatch.loadbalancer.server.port=8003"
 
-  dashboard-api:
+  analytics-api:
     build:
       context: .
-      dockerfile: Dockerfile.shared
+      dockerfile: Dockerfile.base
     command: uvicorn main:app --host 0.0.0.0 --port 8004
     expose:
       - "8004"
@@ -183,17 +184,17 @@ services:
         condition: service_healthy
     environment:
       <<: *common-env
-      SERVICE_NAME: dashboard
+      SERVICE_NAME: analytics
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/analytics`)"
-      - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.services.dashboard.loadbalancer.server.port=8004"
+      - "traefik.http.routers.analytics.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/analytics`)"
+      - "traefik.http.routers.analytics.entrypoints=web"
+      - "traefik.http.services.analytics.loadbalancer.server.port=8004"
 
-  officer-app-api:
+  officers-api:
     build:
       context: .
-      dockerfile: Dockerfile.shared
+      dockerfile: Dockerfile.base
     command: uvicorn main:app --host 0.0.0.0 --port 8005
     expose:
       - "8005"
@@ -204,17 +205,17 @@ services:
         condition: service_started
     environment:
       <<: *common-env
-      SERVICE_NAME: officer-app
+      SERVICE_NAME: officers
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.officer.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/officer`)"
-      - "traefik.http.routers.officer.entrypoints=web"
-      - "traefik.http.services.officer.loadbalancer.server.port=8005"
+      - "traefik.http.routers.officers.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/officer`)"
+      - "traefik.http.routers.officers.entrypoints=web"
+      - "traefik.http.services.officers.loadbalancer.server.port=8005"
 
-  notification-service:
+  alerts-service:
     build:
       context: .
-      dockerfile: Dockerfile.shared
+      dockerfile: Dockerfile.base
     command: uvicorn main:app --host 0.0.0.0 --port 8006
     expose:
       - "8006"
@@ -223,19 +224,19 @@ services:
         condition: service_started
     environment:
       <<: *common-env
-      SERVICE_NAME: notification
+      SERVICE_NAME: alerts
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.notification.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/notifications`)"
-      - "traefik.http.routers.notification.entrypoints=web"
-      - "traefik.http.services.notification.loadbalancer.server.port=8006"
+      - "traefik.http.routers.alerts.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/notifications`)"
+      - "traefik.http.routers.alerts.entrypoints=web"
+      - "traefik.http.services.alerts.loadbalancer.server.port=8006"
 
   seed:
     build:
       context: .
-      dockerfile: Dockerfile.shared
+      dockerfile: Dockerfile.base
     working_dir: /app
-    command: python scripts/seed_data.py
+    command: python scripts/seed.py
     profiles:
       - seed
     depends_on:
@@ -243,6 +244,28 @@ services:
         condition: service_healthy
     environment:
       <<: *common-env
+
+  ml-platform-api:
+    build:
+      context: ../ml-engineer-3
+      dockerfile: ../backend/services/ml-platform/Dockerfile
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8007
+    expose:
+      - "8007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      <<: *common-env
+      SERVICE_NAME: ml-platform
+      KAFKA_BOOTSTRAP: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mlplatform.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/forecast`, `/api/v1/officer/feedback`, `/api/v1/review`, `/api/v1/ml`)"
+      - "traefik.http.routers.mlplatform.entrypoints=web"
+      - "traefik.http.services.mlplatform.loadbalancer.server.port=8007"
 
 volumes:
   pgdata:

@@ -1,5 +1,5 @@
 # Production overrides for docker-compose.yml
-# Usage: docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 version: "3.9"
 
@@ -35,33 +35,40 @@ services:
           cpus: "0.5"
           memory: "1G"
 
-  queue-service:
+  dispatch-service:
     <<: *prod-service
     deploy:
       resources:
         limits:
           memory: "512M"
 
-  dashboard-api:
+  analytics-api:
     <<: *prod-service
     deploy:
       resources:
         limits:
           memory: "512M"
 
-  officer-app-api:
+  officers-api:
     <<: *prod-service
     deploy:
       resources:
         limits:
           memory: "512M"
 
-  notification-service:
+  alerts-service:
     <<: *prod-service
     deploy:
       resources:
         limits:
           memory: "512M"
+
+  ml-platform-api:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          memory: "1G"
 
   frontend:
     restart: unless-stopped

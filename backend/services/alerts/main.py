@@ -12,7 +12,7 @@ from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
-app = FastAPI(title="notification-service", version="1.0.0")
+app = FastAPI(title="alerts-service", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
@@ -98,4 +98,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
-    return {"status": "ok", "service": "notification-service"}
+    return {"status": "ok", "service": "alerts-service"}

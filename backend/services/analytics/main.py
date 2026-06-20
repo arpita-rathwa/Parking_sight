@@ -1,3 +1,5 @@
+import json
+import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -10,6 +12,8 @@ from sqlalchemy.orm import Session
 from shared.auth.jwt import require_role
 from shared.auth.routes import router as auth_router
 from shared.config.settings import settings
+from shared.kafka.consumer import create_consumer
+from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.congestion_scores import CongestionScore
@@ -21,7 +25,24 @@ from shared.redis.client import redis_client
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
-app = FastAPI(title="dashboard-api", version="1.0.0")
+
+_hmm_predictions: list[dict] = []
+_hmm_predictions_lock = threading.Lock()
+
+
+def _consume_hotspot_predictions():
+    consumer = create_consumer(KAFKA_TOPICS["hotspot_predictions"], "analytics-hmm-group")
+    try:
+        for msg in consumer:
+            with _hmm_predictions_lock:
+                _hmm_predictions.clear()
+                _hmm_predictions.extend(msg.value.get("zones", []))
+    except Exception:
+        pass
+    finally:
+        consumer.close()
+
+app = FastAPI(title="analytics-api", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
@@ -38,6 +59,7 @@ app.include_router(auth_router)
 def on_startup():
     run_migrations()
     init_sentry(settings.SERVICE_NAME)
+    threading.Thread(target=_consume_hotspot_predictions, daemon=True, name="hmm-consumer").start()
 
 
 @app.on_event("startup")
@@ -522,6 +544,19 @@ async def get_predicted_hotspots(
     db: Session = Depends(get_db),
     current_user=Depends(require_role("admin", "operator", "planner")),
 ):
+    with _hmm_predictions_lock:
+        if _hmm_predictions:
+            zones = {z.id: z.name for z in db.query(Zone).all()}
+            return [
+                {
+                    "name": zones.get(p["zone_id"], p["zone_id"]),
+                    "confidence": min(round(p["risk_score"] * 100), 99),
+                    "state": p.get("predicted_state_name", p.get("state", "unknown")),
+                    "hotspot_probability": p.get("hotspot_probability", 0),
+                }
+                for p in sorted(_hmm_predictions, key=lambda x: x.get("risk_score", 0), reverse=True)[:5]
+            ]
+
     cutoff = datetime.now(timezone.utc) - timedelta(hours=3)
     rows = (
         db.query(
@@ -580,4 +615,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
-    return {"status": "ok", "service": "dashboard-api"}
+    return {"status": "ok", "service": "analytics-api"}

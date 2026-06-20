@@ -4,8 +4,8 @@ RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/li
 
 WORKDIR /app
 
-COPY requirements.base.txt requirements.scoring.txt ./
-RUN pip install --no-cache-dir -r requirements.base.txt -r requirements.scoring.txt
+COPY requirements.common.txt requirements.scoring.txt ./
+RUN pip install --no-cache-dir -r requirements.common.txt -r requirements.scoring.txt
 
 COPY shared/ ./shared/
 COPY services/scoring/ ./services/scoring/

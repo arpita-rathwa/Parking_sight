@@ -1,10 +1,17 @@
-from confluent_kafka import Producer, Consumer
+import json
+import os
+import signal
+import sys
+
 import lightgbm as lgb
 import pandas as pd
-import json
-from datetime import datetime
+from kafka import KafkaConsumer, KafkaProducer
 
-model = lgb.Booster(model_file="../model/model.txt")
+_model_path = os.path.join(os.path.dirname(__file__), "..", "model", "model.txt")
+try:
+    model = lgb.Booster(model_file=_model_path)
+except Exception as e:
+    raise RuntimeError(f"Failed to load model from {_model_path}: {e}")
 
 FEATURE_COLS = [
     "raw_count", "centroid_lat", "centroid_lon", "police_station",
@@ -15,41 +22,49 @@ FEATURE_COLS = [
 TOPIC_RAW    = "parking.violations.raw"
 TOPIC_SCORED = "parking.hotspots.scored"
 
-producer = Producer({"bootstrap.servers": "localhost:9092"})
-consumer = Consumer({
-    "bootstrap.servers": "localhost:9092",
-    "group.id": "hotspot-scorer",
-    "auto.offset.reset": "earliest"
-})
+producer = KafkaProducer(
+    bootstrap_servers="localhost:9092",
+    key_serializer=lambda k: str(k).encode("utf-8") if k else None,
+    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+)
+
+consumer = KafkaConsumer(
+    TOPIC_RAW,
+    bootstrap_servers="localhost:9092",
+    group_id="hotspot-scorer",
+    auto_offset_reset="earliest",
+    value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+    key_deserializer=lambda k: k.decode("utf-8") if k else None,
+)
 
 def publish_violation(event: dict):
-    producer.produce(
-        TOPIC_RAW,
-        key=str(event.get("cluster_id")),
-        value=json.dumps(event)
-    )
-    producer.flush()
+    future = producer.send(TOPIC_RAW, key=event.get("cluster_id"), value=event)
+    future.get(timeout=10)
 
 def consume_and_score():
-    consumer.subscribe([TOPIC_RAW])
     print(f"Listening on '{TOPIC_RAW}'... (Ctrl+C to stop)")
     try:
-        while True:
-            msg = consumer.poll(timeout=1.0)
-            if msg is None or msg.error():
-                continue
-            raw = json.loads(msg.value().decode())
+        for msg in consumer:
+            raw = msg.value
             row = pd.DataFrame([raw])
             row["police_station"] = row["police_station"].astype("category")
             row["junction_name"]  = row["junction_name"].astype("category")
             score = float(model.predict(row[FEATURE_COLS])[0])
             tier  = "HIGH" if score >= 70 else ("MEDIUM" if score >= 40 else "LOW")
             result = {**raw, "impact_score": round(score, 4), "priority_tier": tier}
-            producer.produce(TOPIC_SCORED, key=str(raw["cluster_id"]), value=json.dumps(result))
-            producer.flush()
+            producer.send(TOPIC_SCORED, key=raw["cluster_id"], value=result)
             print(f"Scored cluster {raw['cluster_id']}: {score:.2f} ({tier})")
     except KeyboardInterrupt:
+        pass
+    finally:
         consumer.close()
+        producer.close()
+
+def handle_sigterm(signum, frame):
+    consumer.close()
+    producer.close()
+    sys.exit(0)
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, handle_sigterm)
     consume_and_score()

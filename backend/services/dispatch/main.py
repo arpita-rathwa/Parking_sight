@@ -20,7 +20,7 @@ from shared.redis.client import redis_client
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
-app = FastAPI(title="queue-service", version="1.0.0")
+app = FastAPI(title="dispatch-service", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
@@ -240,4 +240,4 @@ async def get_dispatch_overview(
 
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
-    return {"status": "ok", "service": "queue-service"}
+    return {"status": "ok", "service": "dispatch-service"}

@@ -1,11 +1,23 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import lightgbm as lgb
 import pandas as pd
 
 app = FastAPI(title="Parking Hotspot Scoring Service")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-model = lgb.Booster(model_file="../model/model.txt")
+_model_path = os.path.join(os.path.dirname(__file__), "..", "model", "model.txt")
+try:
+    model = lgb.Booster(model_file=_model_path)
+except Exception as e:
+    raise RuntimeError(f"Failed to load model from {_model_path}: {e}")
 
 FEATURE_COLS = [
     "raw_count", "centroid_lat", "centroid_lon", "police_station",
@@ -29,10 +41,13 @@ class ClusterFeatures(BaseModel):
 
 @app.post("/score")
 def score_cluster(features: ClusterFeatures):
-    row = pd.DataFrame([features.model_dump()])
-    row["police_station"] = row["police_station"].astype("category")
-    row["junction_name"] = row["junction_name"].astype("category")
-    score = float(model.predict(row[FEATURE_COLS])[0])
+    try:
+        row = pd.DataFrame([features.model_dump()])
+        row["police_station"] = row["police_station"].astype("category")
+        row["junction_name"] = row["junction_name"].astype("category")
+        score = float(model.predict(row[FEATURE_COLS])[0])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
     tier = "HIGH" if score >= 70 else ("MEDIUM" if score >= 40 else "LOW")
     return {
         "cluster_id": features.cluster_id,

@@ -15,6 +15,7 @@ dependencies = [
     "pydantic-settings>=2.2",
     "sqlalchemy>=2.0",
     "pyyaml>=6.0",
+    "psycopg2-binary>=2.9",
     "boto3>=1.34",          # only used when STORAGE_BACKEND=s3
     "kafka-python>=2.0",    # only used when KAFKA_BOOTSTRAP is set
     "pillow>=10.0",         # demo data seeder

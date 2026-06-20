@@ -93,3 +93,10 @@ def get_scoring_engine() -> MLScoringEngine:
         _engine = MLScoringEngine()
         _engine.load()
     return _engine
+
+
+def reload_scoring_engine() -> bool:
+    global _engine
+    _engine = MLScoringEngine()
+    ok = _engine.load()
+    return ok
