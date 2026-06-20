@@ -314,15 +314,34 @@ async def get_congestion_heat(
 
     hour_map = {int(h.hour): float(h.avg_score) for h in hourly}
 
+    h6 = hour_map.get(6, 0)
+    h8 = hour_map.get(8, 0)
+    h10 = hour_map.get(10, 0)
+    h12 = hour_map.get(12)
+    h11 = hour_map.get(11, 0)
+    h13 = hour_map.get(13, 0)
+    h14 = hour_map.get(14, 0)
+    h15 = hour_map.get(15)
+    h16 = hour_map.get(16, 0)
+    h17 = hour_map.get(17)
+    h18 = hour_map.get(18, 0)
+    h19 = hour_map.get(19, 0)
+    h20 = hour_map.get(20, 0)
+    h21 = hour_map.get(21, 0)
+    afternoon_8_12 = (h12 or 0) * 0.3 if h12 else 0
+    afternoon_10_12 = (h12 or 0) * 0.3 if h12 else 0
+    evening_4 = (h17 or 0) * 0.5 if h17 else 0
+    morning_6 = h6 + (h8 / 2 if h8 else 0)
+
     slots = [
-        {"time": "6am", "morning": hour_map.get(6, 0) + hour_map.get(8, 0) / 2 if hour_map.get(8) else hour_map.get(6, 0), "afternoon": 0, "evening": 0},
-        {"time": "8am", "morning": hour_map.get(8, 0), "afternoon": hour_map.get(12, 0) * 0.3 if hour_map.get(12) else 0, "evening": 0},
-        {"time": "10am", "morning": hour_map.get(10, 0) * 0.7, "afternoon": hour_map.get(12, 0) * 0.3 if hour_map.get(12) else 0, "evening": 0},
-        {"time": "12pm", "morning": 0, "afternoon": hour_map.get(12, 0) or hour_map.get(11, 0) or 50, "evening": 0},
-        {"time": "2pm", "morning": 0, "afternoon": hour_map.get(14, 0) or hour_map.get(13, 0) or 60, "evening": 0},
-        {"time": "4pm", "morning": 0, "afternoon": hour_map.get(16, 0) or hour_map.get(15, float(hour_map.get(14, 0))), "evening": hour_map.get(17, 0) * 0.5 if hour_map.get(17) else 0},
-        {"time": "6pm", "morning": 0, "afternoon": 0, "evening": hour_map.get(18, 0) or hour_map.get(19, 0) or 70},
-        {"time": "8pm", "morning": 0, "afternoon": 0, "evening": hour_map.get(20, 0) or hour_map.get(21, 0) or 40},
+        {"time": "6am", "morning": morning_6, "afternoon": 0, "evening": 0},
+        {"time": "8am", "morning": h8, "afternoon": afternoon_8_12, "evening": 0},
+        {"time": "10am", "morning": (h10 or 0) * 0.7, "afternoon": afternoon_10_12, "evening": 0},
+        {"time": "12pm", "morning": 0, "afternoon": h12 or h11 or 50, "evening": 0},
+        {"time": "2pm", "morning": 0, "afternoon": h14 or h13 or 60, "evening": 0},
+        {"time": "4pm", "morning": 0, "afternoon": h16 or (h15 or h14), "evening": evening_4},
+        {"time": "6pm", "morning": 0, "afternoon": 0, "evening": h18 or h19 or 70},
+        {"time": "8pm", "morning": 0, "afternoon": 0, "evening": h20 or h21 or 40},
     ]
     return slots
 
