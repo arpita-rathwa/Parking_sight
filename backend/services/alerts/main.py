@@ -1,5 +1,7 @@
 import asyncio
-import threading
+import logging
+import signal
+from threading import Event, Thread
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,8 @@ from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
+
+logger = logging.getLogger("alerts-service")
 
 app = FastAPI(title="alerts-service", version="1.0.0")
 app.add_middleware(
@@ -27,6 +31,10 @@ app.include_router(auth_router)
 class NotificationManager:
     def __init__(self):
         self.connections: list[WebSocket] = []
+        self._main_loop: asyncio.AbstractEventLoop | None = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._main_loop = loop
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -42,48 +50,67 @@ class NotificationManager:
             except Exception:
                 self.connections.remove(conn)
 
-
-manager = NotificationManager()
-
-
-def consume_loop(consumer, handler):
-    for msg in consumer:
-        handler(msg.key, msg.value)
-
-
-def start_kafka_consumers():
-    def handle_violation(key, value):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(manager.broadcast({"type": "violation", "data": value}))
-
-    def handle_scored_zone(key, value):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            manager.broadcast({"type": "zone_scored", "data": value})
+    def _broadcast_sync(self, message: dict) -> None:
+        if self._main_loop is None or self._main_loop.is_closed():
+            return
+        asyncio.run_coroutine_threadsafe(
+            self.broadcast(message), self._main_loop
         )
 
-    violation_consumer = create_consumer(
-        KAFKA_TOPICS["violations_raw"], "notification-group"
-    )
-    threading.Thread(
-        target=lambda: consume_loop(violation_consumer, handle_violation), daemon=True
-    ).start()
 
-    scored_consumer = create_consumer(
-        KAFKA_TOPICS["zones_scored"], "notification-scored-group"
-    )
-    threading.Thread(
-        target=lambda: consume_loop(scored_consumer, handle_scored_zone), daemon=True
-    ).start()
+manager = NotificationManager()
+_stop_events: list[Event] = []
+
+
+def _consume_topic(topic: str, group_id: str, event_type: str, stop: Event) -> None:
+    consumer = create_consumer(topic, group_id)
+    logger.info("Consumer started for %s (group=%s)", topic, group_id)
+    try:
+        for msg in consumer:
+            if stop.is_set():
+                break
+            try:
+                manager._broadcast_sync(
+                    {"type": event_type, "data": msg.value}
+                )
+            except Exception:
+                logger.exception("Failed to broadcast %s message", event_type)
+    finally:
+        consumer.close()
+        logger.info("Consumer stopped for %s", topic)
+
+
+def start_kafka_consumers() -> None:
+    configs = [
+        (KAFKA_TOPICS["violations_raw"], "notification-group", "violation"),
+        (KAFKA_TOPICS["zones_scored"], "notification-scored-group", "zone_scored"),
+    ]
+    for topic, group, event_type in configs:
+        stop = Event()
+        _stop_events.append(stop)
+        thread = Thread(
+            target=_consume_topic,
+            args=(topic, group, event_type, stop),
+            name=f"consumer-{topic}",
+            daemon=True,
+        )
+        thread.start()
 
 
 @app.on_event("startup")
 async def startup():
     run_migrations()
     init_sentry(settings.SERVICE_NAME)
-    threading.Thread(target=start_kafka_consumers, daemon=True).start()
+    manager.set_loop(asyncio.get_event_loop())
+    thread = Thread(target=start_kafka_consumers, name="kafka-consumers", daemon=True)
+    thread.start()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    logger.info("Signalling consumers to stop...")
+    for stop in _stop_events:
+        stop.set()
 
 
 @app.websocket(f"{settings.API_V1_PREFIX}/ws/notifications")

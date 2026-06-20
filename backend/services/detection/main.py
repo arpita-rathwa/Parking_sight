@@ -91,6 +91,32 @@ def on_startup():
     if settings.STREAM_CACHE_DIR:
         Path(settings.STREAM_CACHE_DIR).mkdir(parents=True, exist_ok=True)
     _start_buffer_flush_thread()
+    _start_dlq_consumer()
+
+
+def _dlq_consumer_loop() -> None:
+    try:
+        from shared.kafka.consumer import create_consumer
+
+        consumer = create_consumer(
+            KAFKA_TOPICS["violations_dlq"],
+            group_id="detection-dlq",
+        )
+        logger.info("DLQ consumer started")
+        for msg in consumer:
+            logger.warning(
+                "DLQ message: key=%s reason=%s topic=%s",
+                msg.key,
+                msg.value.get("dlq_reason", "unknown"),
+                msg.topic,
+            )
+    except Exception:
+        logger.exception("DLQ consumer failed to start")
+
+
+def _start_dlq_consumer() -> None:
+    thread = Thread(target=_dlq_consumer_loop, name="dlq-consumer", daemon=True)
+    thread.start()
 
 
 def _buffer_flush_loop() -> None:
@@ -252,8 +278,18 @@ def _publish_detection(
     )
     if not kafka_ok:
         logger.warning(
-            "Kafka unreachable — violation %s persisted to DB only", violation_id
+            "Kafka unreachable — violation %s routed to DLQ", violation_id
         )
+        dlq_ok = producer.send(
+            KAFKA_TOPICS["violations_dlq"],
+            key=str(violation_id),
+            value={**event, "dlq_reason": "kafka_unreachable"},
+        )
+        if not dlq_ok:
+            logger.error(
+                "DLQ also unreachable — violation %s persisted to DB only",
+                violation_id,
+            )
     return str(violation_id)
 
 
