@@ -249,6 +249,8 @@ export function useAnalyticsInsights() {
 export interface PredictedHotspot {
   name: string;
   confidence: number;
+  state?: string;
+  hotspot_probability?: number;
 }
 
 export function usePredictedHotspots() {

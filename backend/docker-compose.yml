@@ -248,7 +248,7 @@ services:
   ml-platform-api:
     build:
       context: ../ml-engineer-3
-      dockerfile: ../backend/services/ml-platform/Dockerfile
+      dockerfile: Dockerfile
     command: uvicorn api.main:app --host 0.0.0.0 --port 8007
     expose:
       - "8007"

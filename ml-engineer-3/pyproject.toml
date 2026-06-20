@@ -22,6 +22,7 @@ dependencies = [
     "fastapi>=0.110",       # feedback-loop API
     "uvicorn>=0.29",        # API server
     "python-multipart>=0.0.9",  # file uploads (evidence)
+    "python-jose[cryptography]>=3.3",
 ]
 
 [project.optional-dependencies]

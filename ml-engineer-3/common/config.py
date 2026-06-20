@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     hmm_min_history: int = 8  # below this -> cold-start fallback
     hmm_bin_minutes: int = 30  # forecast horizon = one bin ahead
 
+    # ---- auth -------------------------------------------------------------
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+
     # ---- feedback loop ----------------------------------------------------
     feedback_retrain_threshold: int = 50  # approved labels that trigger a retrain
     reviewer_roles: tuple[str, ...] = ("admin", "reviewer")  # ML Eng 1 reviews as "reviewer"

@@ -171,6 +171,29 @@
           "awslogs-stream-prefix": "alerts"
         }
       }
+    },
+    {
+      "name": "ml-platform-api",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-ml-platform",
+      "cpu": 512,
+      "memory": 1024,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8007, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "KAFKA_BOOTSTRAP", "value": "host.docker.internal:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "SERVICE_NAME", "value": "ml-platform" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "ml-platform"
+        }
+      }
     }
   ]
 }

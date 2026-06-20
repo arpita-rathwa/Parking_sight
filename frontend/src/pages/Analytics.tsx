@@ -512,7 +512,7 @@ export default function Analytics() {
                   </div>
                   
                   <div className="space-y-6 flex-1 flex flex-col justify-center">
-                    {(hotspotsData ?? [
+                      {(hotspotsData ?? [
                       { name: 'Railway Station', confidence: 94 },
                       { name: 'Bus Stand', confidence: 87 },
                       { name: 'Market Road', confidence: 76 },
@@ -527,6 +527,13 @@ export default function Analytics() {
                       ];
                       const c = colors[i % colors.length];
                       const g = glows[i % glows.length];
+                      const stateColors: Record<string, string> = {
+                        calm: 'bg-green-500',
+                        building: 'bg-yellow-500',
+                        congested: 'bg-orange-500',
+                        critical: 'bg-red-500',
+                      };
+                      const stateColor = spot.state ? stateColors[spot.state] || 'bg-slate-500' : null;
                       return (
                         <motion.div 
                           key={i}
@@ -539,8 +546,20 @@ export default function Analytics() {
                             <span className="font-bold text-sm text-slate-200 flex items-center gap-2">
                               <span className={`w-2 h-2 rounded-full ${c} animate-pulse ${g}`} />
                               {spot.name}
+                              {spot.hotspot_probability ? (
+                                <span className="text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/30">
+                                  {Math.round(spot.hotspot_probability * 100)}% hotspot
+                                </span>
+                              ) : null}
                             </span>
-                            <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">{spot.confidence}% confidence</span>
+                            <span className="flex items-center gap-2">
+                              {spot.state ? (
+                                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${stateColor || 'bg-slate-500'} text-white`}>
+                                  {spot.state}
+                                </span>
+                              ) : null}
+                              <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">{spot.confidence}% confidence</span>
+                            </span>
                           </div>
                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div 

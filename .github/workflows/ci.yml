@@ -6,17 +6,20 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "ml-engineer-3/**"
       - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths:
       - "backend/**"
       - "frontend/**"
+      - "ml-engineer-3/**"
 
 env:
   PYTHON_VERSION: "3.12"
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: parksight
+  GHCR_REGISTRY: ghcr.io
 
 jobs:
   lint:
@@ -94,6 +97,7 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     defaults:
       run:
         working-directory: backend
@@ -110,13 +114,20 @@ jobs:
         if: env.AWS_ACCESS_KEY_ID != ''
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to GHCR
+        if: env.AWS_ACCESS_KEY_ID == ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set registry URL
         id: set-registry
         run: |
           if [ -n "${{ steps.login-ecr.outputs.registry }}" ]; then
             echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> "$GITHUB_ENV"
           else
-            echo "ECR_REGISTRY=parksight" >> "$GITHUB_ENV"
+            echo "ECR_REGISTRY=ghcr.io/${{ github.repository_owner }}" >> "$GITHUB_ENV"
           fi
       - name: Build and tag images
         run: |
@@ -128,10 +139,17 @@ jobs:
             ["alerts"]="Dockerfile.base"
             ["analytics"]="Dockerfile.base"
             ["officers"]="Dockerfile.base"
+            ["ml-platform"]="Dockerfile"
           )
           for service in "${!dockerfiles[@]}"; do
             df=${dockerfiles[$service]}
-            docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
+            if [[ "$service" == "ml-platform" ]]; then
+              cd ../ml-engineer-3
+              docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
+              cd ../backend
+            else
+              docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
+            fi
             docker tag $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service $REGISTRY/$ECR_REPOSITORY:latest-$service
           done
       - name: Build frontend
@@ -140,6 +158,15 @@ jobs:
           REGISTRY=${ECR_REGISTRY:-parksight}
           docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend .
           docker tag $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend $REGISTRY/$ECR_REPOSITORY:latest-frontend
+      - name: Push images to registry
+        if: env.AWS_ACCESS_KEY_ID != '' || env.GITHUB_TOKEN != ''
+        run: |
+          REGISTRY=${ECR_REGISTRY:-parksight}
+          SERVICES=(detection scoring dispatch alerts analytics officers ml-platform frontend)
+          for service in "${SERVICES[@]}"; do
+            docker push $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service
+            docker push $REGISTRY/$ECR_REPOSITORY:latest-$service
+          done
 
   deploy:
     name: Deploy to Staging
