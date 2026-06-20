@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { ArrowRight, Mail, Lock, ArrowLeft } from "lucide-react";
+import { ArrowRight, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { FloatingLights, AnimatedCanvas } from "@/components/CinematicBackground";
+import { setToken } from "@/lib/api";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8004";
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -20,10 +22,34 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocation("/dashboard");
+    setLoading(true);
+    setError("");
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", email);
+      formData.append("password", password);
+      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || "Invalid credentials");
+      }
+      const data = await res.json();
+      setToken(data.access_token);
+      setLocation("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -175,9 +201,19 @@ export default function Login() {
               </div>
             </div>
 
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-400 text-xs font-medium text-center"
+              >
+                {error}
+              </motion.p>
+            )}
             <motion.button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 rounded-2xl py-4 font-bold text-sm tracking-wide text-white transition-all duration-300 hover:scale-[1.02]"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 rounded-2xl py-4 font-bold text-sm tracking-wide text-white transition-all duration-300 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)",
                 boxShadow: "0 0 20px rgba(37,99,235,0.35)",
@@ -186,8 +222,14 @@ export default function Login() {
               whileTap={{ scale: 0.98 }}
               data-testid="button-access-dashboard"
             >
-              Access Dashboard
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  Access Dashboard
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </motion.button>
           </motion.form>
 

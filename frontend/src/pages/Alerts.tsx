@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { FloatingLights } from '@/components/CinematicBackground';
+import { useAlerts } from '@/lib/hooks';
 
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -52,17 +53,6 @@ function LiveClock() {
   );
 }
 
-const alertsData = [
-  { id: 'CAM-008', severity: 'CRITICAL', zone: 'City Center', type: 'Lane Blocking', time: '10:11 AM', status: 'ACTIVE', officer: 'Officer 6' },
-  { id: 'CAM-012', severity: 'HIGH', zone: 'Railway Station', type: 'Illegal Parking', time: '09:45 AM', status: 'ACTIVE', officer: 'Officer 3' },
-  { id: 'CAM-019', severity: 'HIGH', zone: 'Bus Stand', type: 'No Parking Zone', time: '10:33 AM', status: 'ACTIVE', officer: 'Officer 5' },
-  { id: 'CAM-027', severity: 'MEDIUM', zone: 'Bus Stand', type: 'Double Parking', time: '10:02 AM', status: 'ACTIVE', officer: 'Officer 1' },
-  { id: 'CAM-031', severity: 'MEDIUM', zone: 'Market Road', type: 'Overstay Violation', time: '10:28 AM', status: 'ACTIVE', officer: 'Officer 4' },
-  { id: 'CAM-044', severity: 'MEDIUM', zone: 'City Center', type: 'Footpath Parking', time: '10:40 AM', status: 'ACTIVE', officer: 'Officer 2' },
-  { id: 'CAM-021', severity: 'LOW', zone: 'Market Road', type: 'Wrong Parking', time: '10:20 AM', status: 'RESOLVED', officer: 'Officer 2' },
-  { id: 'CAM-015', severity: 'LOW', zone: 'Railway Station', type: 'Expired Permit', time: '09:58 AM', status: 'RESOLVED', officer: 'Officer 1' },
-];
-
 const timelineData = [
   { time: '10:41 AM', icon: UserCheck, color: 'text-green-400', bg: 'bg-green-500/20', text: 'Officer 2 resolved violation at Market Road' },
   { time: '10:38 AM', icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/20', text: 'CRITICAL alert triggered at City Center' },
@@ -77,6 +67,7 @@ const timelineData = [
 export default function Alerts() {
   const [collapsed, setCollapsed] = useState(false);
   const [, setLocation] = useLocation();
+  const { data: alertsData } = useAlerts();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('All');
@@ -87,8 +78,18 @@ export default function Alerts() {
     document.title = 'Live Alerts | ParkSight';
   }, []);
 
+  const alertsList = alertsData?.alerts?.map((a, i) => ({
+    id: a.zone_id?.slice(0, 7) ?? `ALERT-${i}`,
+    severity: a.severity,
+    zone: a.zone_name,
+    type: a.average_impact > 70 ? 'Critical Congestion' : a.average_impact > 50 ? 'High Congestion' : 'Congestion Alert',
+    time: a.generated_at ? new Date(a.generated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—',
+    status: a.average_impact > 50 ? 'ACTIVE' : 'ACTIVE',
+    officer: '—',
+  })) ?? [];
+
   const filteredAlerts = useMemo(() => {
-    return alertsData.filter((alert) => {
+    return alertsList.filter((alert) => {
       const matchesSearch = 
         alert.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
         alert.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,7 +100,7 @@ export default function Alerts() {
 
       return matchesSearch && matchesSeverity && matchesZone && matchesStatus;
     });
-  }, [searchTerm, severityFilter, zoneFilter, statusFilter]);
+  }, [searchTerm, severityFilter, zoneFilter, statusFilter, alertsList]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

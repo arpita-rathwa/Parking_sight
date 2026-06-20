@@ -1,17 +1,31 @@
 import csv
 import os
+import random
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)  # noqa: E402
+)
 
-from shared.auth.jwt import get_password_hash  # noqa: E402
-from shared.models.database import Base, SessionLocal, engine  # noqa: E402
-from shared.models.users import User  # noqa: E402
-from shared.models.zones import Zone  # noqa: E402
+from sqlalchemy import text
+
+from shared.auth.jwt import get_password_hash
+from shared.models.cameras import Camera
+from shared.models.congestion_scores import CongestionScore
+from shared.models.database import Base, get_engine, get_session
+from shared.models.enforcement_log import EnforcementLog
+from shared.models.users import User
+from shared.models.violations import Violation
+from shared.models.zones import Zone
+
+
+def clear_data(db):
+    for table in ["enforcement_log", "congestion_scores", "violations", "cameras", "zones", "users"]:
+        db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+    db.commit()
+    print("Cleared existing data")
 
 
 def seed_zones(db):
@@ -31,6 +45,7 @@ def seed_zones(db):
         ("HAL Old Airport", 12.95, 77.68),
         ("High Ground", 12.99, 77.59),
     ]
+    zones_list = []
     for name, lat, lng in police_stations:
         zone = Zone(
             id=uuid.uuid4(),
@@ -43,8 +58,10 @@ def seed_zones(db):
             city="Bengaluru",
         )
         db.add(zone)
+        zones_list.append(zone)
     db.commit()
-    print(f"Seeded {len(police_stations)} zones")
+    print(f"Seeded {len(zones_list)} zones")
+    return zones_list
 
 
 def seed_users(db):
@@ -52,8 +69,13 @@ def seed_users(db):
         ("admin@parksight.com", "admin123", "Admin User", "admin"),
         ("operator@parksight.com", "operator123", "Operator User", "operator"),
         ("planner@parksight.com", "planner123", "Planner User", "planner"),
-        ("officer@parksight.com", "officer123", "Officer User", "officer"),
+        ("officer1@parksight.com", "officer123", "Ravi Kumar", "officer"),
+        ("officer2@parksight.com", "officer123", "Priya Sharma", "officer"),
+        ("officer3@parksight.com", "officer123", "Anita Desai", "officer"),
+        ("officer4@parksight.com", "officer123", "Vijay Patil", "officer"),
+        ("officer5@parksight.com", "officer123", "Suresh Reddy", "officer"),
     ]
+    users_list = []
     for email, pw, name, role in users_data:
         user = User(
             id=uuid.uuid4(),
@@ -63,19 +85,19 @@ def seed_users(db):
             role=role,
         )
         db.add(user)
+        users_list.append(user)
     db.commit()
-    print("Seeded 4 users")
+    print(f"Seeded {len(users_list)} users")
+    return users_list
 
 
 def seed_violations_from_csv(db, csv_path):
-    from shared.models.cameras import Camera
-    from shared.models.violations import Violation
-
     zones = db.query(Zone).all()
     zone_map = {z.police_station: z for z in zones}
     cameras = {}
     batch = []
     count = 0
+    violation_types = []
 
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -87,7 +109,7 @@ def seed_violations_from_csv(db, csv_path):
                 continue
 
             station = row.get("police_station", "Unknown")
-            zone = zone_map.get(station) or list(zone_map.values())[0]
+            zone = zone_map.get(station) or zone_map.get("Madiwala", zones[0])
 
             ts_str = row.get("created_datetime", "")
             try:
@@ -109,16 +131,19 @@ def seed_violations_from_csv(db, csv_path):
                 cameras[camera_key] = cam
 
             camera = cameras[camera_key]
+            vtype = row.get("violation_type", "NO PARKING")
+            if vtype not in violation_types:
+                violation_types.append(vtype)
 
             violation = Violation(
                 id=uuid.uuid4(),
                 camera_id=camera.id,
                 timestamp=ts,
                 coordinates=f"SRID=4326;POINT({lng} {lat})",
-                confidence_score=0.85,
+                confidence_score=random.uniform(0.75, 0.99),
                 vehicle_type=row.get("vehicle_type", "CAR"),
-                violation_type=row.get("violation_type", "NO PARKING"),
-                resolved=False,
+                violation_type=vtype,
+                resolved=random.random() < 0.4,
             )
             batch.append(violation)
             count += 1
@@ -133,23 +158,110 @@ def seed_violations_from_csv(db, csv_path):
         db.bulk_save_objects(batch)
         db.commit()
     print(f"Total violations seeded: {count}")
+    return violation_types
+
+
+def seed_congestion_scores(db, zones, hours=72):
+    now = datetime.now(timezone.utc)
+    batch = []
+    count = 0
+
+    for zone in zones:
+        base_violations = random.randint(5, 50)
+        base_density = random.uniform(20, 80)
+        for h in range(hours, 0, -1):
+            ts = now - timedelta(hours=h)
+            hour_factor = 1.0 + 0.5 * abs(12 - ts.hour) / 12
+            weekday_factor = 1.3 if ts.weekday() < 5 else 0.7
+            viol = int(base_violations * hour_factor * weekday_factor * random.uniform(0.7, 1.3))
+            density = base_density * hour_factor * weekday_factor * random.uniform(0.8, 1.2)
+            speed_drop = random.uniform(5, 40) * hour_factor
+            impact = (viol * 0.35 + speed_drop * 0.25 + density * 0.15) * random.uniform(0.8, 1.2)
+            weather = random.uniform(0.8, 1.2)
+
+            score = CongestionScore(
+                id=uuid.uuid4(),
+                zone_id=zone.id,
+                timestamp=ts,
+                speed_drop_percent=round(speed_drop, 1),
+                violation_count=viol,
+                impact_score=round(min(impact, 100), 1),
+                traffic_density=round(density, 1),
+                weather_factor=round(weather, 2),
+            )
+            batch.append(score)
+            count += 1
+
+            if count % 500 == 0:
+                db.bulk_save_objects(batch)
+                db.commit()
+                batch = []
+
+    if batch:
+        db.bulk_save_objects(batch)
+        db.commit()
+    print(f"Seeded {count} congestion score entries")
+
+
+def seed_enforcement_logs(db, users, zones):
+    officers = [u for u in users if u.role == "officer"]
+    if not officers:
+        print("No officers found, skipping enforcement logs")
+        return
+
+    now = datetime.now(timezone.utc)
+    batch = []
+    count = 0
+
+    for officer in officers:
+        assigned_zones = random.sample(zones, min(3, len(zones)))
+        for zone in assigned_zones:
+            dispatched = now - timedelta(
+                hours=random.randint(1, 12),
+                minutes=random.randint(0, 59),
+            )
+            arrived = dispatched + timedelta(minutes=random.randint(5, 25))
+            resolved = arrived + timedelta(minutes=random.randint(10, 60)) if random.random() < 0.7 else None
+            outcome = random.choice(["citation_issued", "warning_given", "no_action"]) if resolved else "pending"
+
+            log = EnforcementLog(
+                id=uuid.uuid4(),
+                officer_id=officer.id,
+                zone_id=zone.id,
+                dispatched_at=dispatched,
+                arrived_at=arrived,
+                resolved_at=resolved,
+                outcome=outcome,
+            )
+            batch.append(log)
+            count += 1
+
+    db.bulk_save_objects(batch)
+    db.commit()
+    print(f"Seeded {count} enforcement log entries")
 
 
 if __name__ == "__main__":
+    engine = get_engine()
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    db = get_session()
     try:
-        seed_users(db)
-        seed_zones(db)
+        clear_data(db)
+        users = seed_users(db)
+        zones = seed_zones(db)
         csv_path = os.path.join(
             os.path.dirname(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             ),
-            "jan to may police violation_anonymized791b166 (1).csv",
+            "docs",
+            "jan_to_may_police_violation_data.csv",
         )
         if os.path.exists(csv_path):
             seed_violations_from_csv(db, csv_path)
         else:
             print(f"CSV not found at {csv_path}, skipping violation seeding")
+        seed_congestion_scores(db, zones, hours=72)
+        seed_enforcement_logs(db, users, zones)
+        print("Seed complete!")
     finally:
         db.close()

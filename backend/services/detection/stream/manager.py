@@ -10,6 +10,7 @@ FrameCallback = Callable[[str, object], None]
 class StreamManager:
     def __init__(self):
         self._cameras: dict[str, CameraStream] = {}
+        self._configs: dict[str, CameraConfig] = {}
 
     @property
     def active_cameras(self) -> list[str]:
@@ -18,6 +19,9 @@ class StreamManager:
     @property
     def camera_count(self) -> int:
         return len(self._cameras)
+
+    def get_config(self, camera_id: str) -> CameraConfig | None:
+        return self._configs.get(camera_id)
 
     def add_camera(self, config: CameraConfig) -> CameraStream:
         if config.camera_id in self._cameras:
@@ -28,6 +32,7 @@ class StreamManager:
             frame_interval=config.frame_interval,
         )
         self._cameras[config.camera_id] = stream
+        self._configs[config.camera_id] = config
         return stream
 
     def remove_camera(self, camera_id: str) -> None:

@@ -16,11 +16,13 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
 
-    JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    SERVICE_NAME: str = "unknown"
+    CORS_ORIGINS: str = "*"
     SENTRY_DSN: str = ""
     AWS_REGION: str = "ap-south-1"
     S3_BUCKET: str = "parksight-media"

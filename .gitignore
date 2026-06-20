@@ -26,3 +26,6 @@ htmlcov/
 *.jpeg
 *.jpg
 *.png
+PENDING_WORK.md
+*.zip
+parksight_ml_engineer_2/

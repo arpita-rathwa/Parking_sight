@@ -3,11 +3,12 @@ import { motion } from 'framer-motion';
 import { 
   Globe, LayoutDashboard, AlertTriangle, BarChart2, Camera as CameraIcon, Settings, Radio, BrainCircuit,
   Search, Bell, TrendingUp, Activity, Users, Clock, AlertOctagon, ChevronLeft, ChevronRight,
-  ZoomIn, ZoomOut
+  ZoomIn, ZoomOut, Loader2
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { FloatingLights } from '@/components/CinematicBackground';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useSummary, useTrends, usePriorityQueue, useAlerts } from '@/lib/hooks';
 
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -53,30 +54,40 @@ function LiveClock() {
   );
 }
 
-const violationData = [
-  { day: 'Mon', value: 45 },
-  { day: 'Tue', value: 52 },
-  { day: 'Wed', value: 38 },
-  { day: 'Thu', value: 67 },
-  { day: 'Fri', value: 59 },
-  { day: 'Sat', value: 81 },
-  { day: 'Sun', value: 127 },
-];
-
-const congestionData = [
-  { time: '6am', value: 22 },
-  { time: '8am', value: 55 },
-  { time: '10am', value: 71 },
-  { time: '12pm', value: 68 },
-  { time: '2pm', value: 48 },
-  { time: '4pm', value: 75 },
-  { time: '6pm', value: 81 },
-  { time: '8pm', value: 63 },
-];
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const [, setLocation] = useLocation();
+  const { data: summary, isLoading: summaryLoading } = useSummary();
+  const { data: trends } = useTrends(7);
+  const { data: priorityZones } = usePriorityQueue(4);
+  const { data: alertsData } = useAlerts();
+
+  const violationData = trends?.trends?.slice(-7).map((t, i) => ({
+    day: DAY_NAMES[new Date(t.date).getDay()] || `Day ${i + 1}`,
+    value: t.count,
+  })) || [];
+
+  const congestionData = trends?.trends?.slice(-8).map((t, i) => ({
+    time: `${8 + i * 2}:00`,
+    value: t.count,
+  })) || [];
+
+  const highImpactZones = priorityZones?.slice(0, 4).map(z => ({
+    name: z.zone_name,
+    score: z.average_impact,
+    color: z.average_impact >= 70 ? 'bg-red-500' : z.average_impact >= 50 ? 'bg-orange-500' : 'bg-amber-500',
+    barColor: z.average_impact >= 70 ? 'bg-red-500/20' : z.average_impact >= 50 ? 'bg-orange-500/20' : 'bg-amber-500/20',
+  })) || [];
+
+  const activeAlerts = alertsData?.alerts?.slice(0, 3).map(a => ({
+    cam: a.zone_name,
+    type: a.severity === 'CRITICAL' ? 'Critical Congestion' : 'High Congestion',
+    severity: a.severity,
+    pulse: a.severity === 'CRITICAL',
+    color: a.severity === 'CRITICAL' ? 'red' : 'amber',
+  })) || [];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -187,11 +198,13 @@ export default function Dashboard() {
             
             {/* Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { title: 'Active Violations', value: 127, trend: '+12 today', icon: TrendingUp, color: 'text-red-400', bg: 'bg-red-500/10', border: 'hover:border-red-500/30' },
-                { title: 'Congestion Score', value: 81, trend: 'High', icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'hover:border-amber-500/30' },
-                { title: 'Officers Active', value: 12, trend: '4 en route', icon: Users, color: 'text-green-400', bg: 'bg-green-500/10', border: 'hover:border-green-500/30' },
-                { title: 'Avg Response Time', value: 3.4, trend: '-0.3 from avg', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'hover:border-blue-500/30', isFloat: true },
+              {summaryLoading ? (
+                <div className="col-span-4 flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+              ) : [
+                { title: 'Active Violations', value: summary?.active_violations ?? 0, trend: `${summary?.total_violations ?? 0} total`, icon: TrendingUp, color: 'text-red-400', bg: 'bg-red-500/10', border: 'hover:border-red-500/30' },
+                { title: 'Congestion Score', value: summary?.congestion_score ?? 0, trend: `${summary?.active_cameras ?? 0} cameras`, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'hover:border-amber-500/30' },
+                { title: 'Officers Active', value: summary?.officers_active ?? 0, trend: `${summary?.resolution_rate ?? 0}% resolve`, icon: Users, color: 'text-green-400', bg: 'bg-green-500/10', border: 'hover:border-green-500/30' },
+                { title: 'Avg Response Time', value: summary?.avg_response_time_min ?? 0, trend: 'last 24h', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'hover:border-blue-500/30', isFloat: true },
               ].map((stat, i) => (
                 <motion.div 
                   key={i} 
@@ -305,12 +318,12 @@ export default function Dashboard() {
                     HIGH IMPACT ZONES
                   </h2>
                   <div className="space-y-4 flex-1">
-                    {[
+                    {(highImpactZones.length ? highImpactZones : [
                       { name: 'Railway Station', score: 94, color: 'bg-red-500', barColor: 'bg-red-500/20' },
                       { name: 'Bus Stand', score: 89, color: 'bg-orange-500', barColor: 'bg-orange-500/20' },
                       { name: 'Market Road', score: 85, color: 'bg-amber-500', barColor: 'bg-amber-500/20' },
                       { name: 'City Center', score: 82, color: 'bg-yellow-500', barColor: 'bg-yellow-500/20' },
-                    ].map((zone, i) => (
+                    ]).map((zone, i) => (
                       <div key={i} className="space-y-1.5">
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-medium text-slate-300"><span className="text-slate-500 mr-2">{i+1}.</span>{zone.name}</span>
@@ -331,11 +344,11 @@ export default function Dashboard() {
                     ACTIVE ALERTS
                   </h2>
                   <div className="space-y-3 overflow-y-auto pr-1 flex-1">
-                    {[
+                    {(activeAlerts.length ? activeAlerts : [
                       { cam: 'Cam 12', type: 'Illegal Parking', severity: 'HIGH', pulse: true, color: 'red' },
                       { cam: 'Cam 27', type: 'Double Parking', severity: 'MEDIUM', pulse: false, color: 'amber' },
                       { cam: 'Cam 08', type: 'Lane Blocking', severity: 'HIGH', pulse: true, color: 'red' },
-                    ].map((alert, i) => (
+                    ]).map((alert, i) => (
                       <div key={i} className={`group flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors ${alert.color === 'red' ? 'hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''}`}>
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg bg-\${alert.color}-500/10`}>

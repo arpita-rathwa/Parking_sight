@@ -5,11 +5,13 @@ on:
     branches: [main, develop]
     paths:
       - "backend/**"
+      - "frontend/**"
       - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths:
       - "backend/**"
+      - "frontend/**"
 
 env:
   PYTHON_VERSION: "3.12"
@@ -106,11 +108,24 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          services=("detection-service" "scoring-service" "queue-service" "notification-service" "dashboard-api" "officer-app-api")
-          for service in "${services[@]}"; do
-            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f Dockerfile.shared .
+          declare -A dockerfiles=(
+            ["detection"]="services/detection/Dockerfile"
+            ["scoring"]="services/scoring/Dockerfile"
+            ["queue"]="Dockerfile.shared"
+            ["notification"]="Dockerfile.shared"
+            ["dashboard"]="Dockerfile.shared"
+            ["officer-app"]="Dockerfile.shared"
+          )
+          for service in "${!dockerfiles[@]}"; do
+            df=${dockerfiles[$service]}
+            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
             docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service $ECR_REGISTRY/$ECR_REPOSITORY:latest-$service
           done
+      - name: Build frontend
+        run: |
+          cd ../frontend
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend -f Dockerfile .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend $ECR_REGISTRY/$ECR_REPOSITORY:latest-frontend
 
   deploy:
     name: Deploy to Staging
@@ -133,6 +148,7 @@ jobs:
           script: |
             cd /opt/Parking_sight/backend
             git pull origin main
+            export DOMAIN=${DOMAIN:-parksight.example.com}
             docker compose pull
             docker compose up -d --force-recreate
             docker image prune -f

@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from shared.auth.jwt import require_role
+from shared.auth.routes import router as auth_router
 from shared.config.settings import settings
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
@@ -14,15 +16,26 @@ from shared.models.database import Base, get_db, get_engine
 from shared.models.enforcement_log import EnforcementLog
 from shared.models.users import User
 from shared.models.zones import Zone
+from shared.utils.migrations import run_migrations
+from shared.utils.sentry import init_sentry
 
 app = FastAPI(title="officer-app-api", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(StructuredLoggingMiddleware)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=get_engine())
+    run_migrations()
+    init_sentry(settings.SERVICE_NAME)
 
 
 class StatusUpdate(BaseModel):

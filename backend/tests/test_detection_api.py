@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pytest
 
-DETECTION_SERVICE_DIR = Path(__file__).resolve().parent.parent / "detection-service"
+DETECTION_SERVICE_DIR = (
+    Path(__file__).resolve().parent.parent / "services" / "detection"
+)
 
 pytestmark = pytest.mark.skip(
     reason="Requires Kafka running (module-level producer connection)"

@@ -1,0 +1,176 @@
+{
+  "family": "parksight",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "8192",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/parksight-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/parksight-ecs-task",
+  "containerDefinitions": [
+    {
+      "name": "traefik",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-traefik",
+      "cpu": 256,
+      "memory": 256,
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 80, "hostPort": 80, "protocol": "tcp" },
+        { "containerPort": 443, "hostPort": 443, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "DOMAIN", "value": "parksight.example.com" },
+        { "name": "ACME_EMAIL", "value": "admin@parksight.example.com" }
+      ]
+    },
+    {
+      "name": "frontend",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-frontend",
+      "cpu": 256,
+      "memory": 256,
+      "essential": true,
+      "portMappings": [{ "containerPort": 80, "protocol": "tcp" }]
+    },
+    {
+      "name": "detection",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-detection",
+      "cpu": 1024,
+      "memory": 2048,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8001, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "CORS_ORIGINS", "value": "https://parksight.example.com" },
+        { "name": "SERVICE_NAME", "value": "detection" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "detection"
+        }
+      }
+    },
+    {
+      "name": "scoring",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-scoring",
+      "cpu": 512,
+      "memory": 1024,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8002, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "SERVICE_NAME", "value": "scoring" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "scoring"
+        }
+      }
+    },
+    {
+      "name": "queue",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-queue",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8003, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "SERVICE_NAME", "value": "queue" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "queue"
+        }
+      }
+    },
+    {
+      "name": "dashboard",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-dashboard",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8004, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "CORS_ORIGINS", "value": "https://parksight.example.com" },
+        { "name": "SERVICE_NAME", "value": "dashboard" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "dashboard"
+        }
+      }
+    },
+    {
+      "name": "officer-app",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-officer-app",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8005, "protocol": "tcp" }],
+      "environment": [
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "SERVICE_NAME", "value": "officer-app" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "officer-app"
+        }
+      }
+    },
+    {
+      "name": "notification",
+      "image": "ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/parksight:latest-notification",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [{ "containerPort": 8006, "protocol": "tcp" }],
+      "environment": [
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "SERVICE_NAME", "value": "notification" },
+        { "name": "PYTHONPATH", "value": "/app" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "parksight",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "notification"
+        }
+      }
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { FloatingLights } from '@/components/CinematicBackground';
+import { useSummary, usePriorityQueue, useDispatchOverview } from '@/lib/hooks';
 
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -53,42 +54,48 @@ function LiveClock() {
   );
 }
 
-const officerData = [
-  { id: 1, name: 'Officer 1', status: 'Available', zone: 'Bus Stand', statLabel: 'Response', statVal: '2.8 min', color: 'green' },
-  { id: 2, name: 'Officer 2', status: 'Available', zone: 'Market Road', statLabel: 'Response', statVal: '3.1 min', color: 'green' },
-  { id: 3, name: 'Officer 3', status: 'En Route', zone: 'Railway Station', statLabel: 'ETA', statVal: '4 min', color: 'blue' },
-  { id: 4, name: 'Officer 4', status: 'En Route', zone: 'City Center', statLabel: 'ETA', statVal: '7 min', color: 'blue' },
-  { id: 5, name: 'Officer 5', status: 'En Route', zone: 'Bus Stand', statLabel: 'ETA', statVal: '2 min', color: 'blue' },
-  { id: 6, name: 'Officer 6', status: 'On Scene', zone: 'City Center', statLabel: 'Response', statVal: '1.2 min', color: 'orange' },
-  { id: 7, name: 'Officer 7', status: 'On Scene', zone: 'Railway Station', statLabel: 'Response', statVal: '3.5 min', color: 'orange' },
-  { id: 8, name: 'Officer 8', status: 'Returning', zone: 'Market Road', statLabel: 'ETA', statVal: '6 min', color: 'purple' },
-];
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  dispatch: Navigation,
+  map: MapPin,
+  check: CheckCircle,
+};
 
-const assignmentsData = [
-  { officer: 'Officer 3', zone: 'Railway Station', violation: 'Illegal Parking', priority: 'CRITICAL', eta: '4 min', status: 'EN ROUTE', color: 'blue' },
-  { officer: 'Officer 4', zone: 'City Center', violation: 'Lane Blocking', priority: 'CRITICAL', eta: '7 min', status: 'EN ROUTE', color: 'blue' },
-  { officer: 'Officer 5', zone: 'Bus Stand', violation: 'Double Parking', priority: 'HIGH', eta: '2 min', status: 'EN ROUTE', color: 'blue' },
-  { officer: 'Officer 6', zone: 'City Center', violation: 'Double Parking', priority: 'HIGH', eta: 'On Scene', status: 'ON SCENE', color: 'orange' },
-  { officer: 'Officer 7', zone: 'Railway Station', violation: 'No Parking Zone', priority: 'HIGH', eta: 'On Scene', status: 'ON SCENE', color: 'orange' },
-  { officer: 'Officer 1', zone: 'Bus Stand', violation: '—', priority: 'MEDIUM', eta: '—', status: 'AVAILABLE', color: 'green' },
-  { officer: 'Officer 2', zone: 'Market Road', violation: '—', priority: 'MEDIUM', eta: '—', status: 'AVAILABLE', color: 'green' },
-  { officer: 'Officer 8', zone: 'Market Road', violation: '—', priority: 'LOW', eta: '6 min', status: 'RETURNING', color: 'purple' },
-];
-
-const timelineData = [
-  { time: '10:42 AM', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-500/20', text: 'Officer 3 assigned to Railway Station' },
-  { time: '10:39 AM', icon: MapPin, color: 'text-orange-400', bg: 'bg-orange-500/20', text: 'Officer 6 reached City Center' },
-  { time: '10:34 AM', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20', text: 'Violation resolved at Market Road by Officer 2' },
-  { time: '10:28 AM', icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/20', text: 'New CRITICAL alert at Bus Stand' },
-  { time: '10:21 AM', icon: Navigation, color: 'text-blue-400', bg: 'bg-blue-500/20', text: 'Officer 5 dispatched to Bus Stand' },
-  { time: '10:15 AM', icon: RefreshCw, color: 'text-purple-400', bg: 'bg-purple-500/20', text: 'Officer 8 reassigned from City Center to Market Road' },
-  { time: '10:08 AM', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/20', text: 'Response time target met — 3.4 min avg' },
-  { time: '09:58 AM', icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20', text: 'Officer 1 resolved case at Hospital Circle' },
-];
+const COLOR_CLASSES: Record<string, { bg: string; text: string; border: string; bgLight: string; borderLight: string }> = {
+  green: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30', bgLight: 'bg-green-500/10', borderLight: 'border-green-500/20' },
+  blue: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', bgLight: 'bg-blue-500/10', borderLight: 'border-blue-500/20' },
+  orange: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30', bgLight: 'bg-orange-500/10', borderLight: 'border-orange-500/20' },
+  purple: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30', bgLight: 'bg-purple-500/10', borderLight: 'border-purple-500/20' },
+};
 
 export default function Dispatch() {
   const [collapsed, setCollapsed] = useState(false);
   const [, setLocation] = useLocation();
+  const { data: summary } = useSummary();
+  const { data: priorityZones } = usePriorityQueue(5);
+  const { data: dispatch } = useDispatchOverview();
+
+  const officerData = dispatch?.officers ?? [];
+  const assignmentsData = dispatch?.assignments ?? [];
+  const timelineData = dispatch?.timeline?.map(t => ({
+    time: t.time,
+    icon: ICON_MAP[t.icon] || Navigation,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/20',
+    text: t.text,
+  })) ?? [];
+
+  const highPriorityZones = priorityZones?.slice(0, 5).map(z => ({
+    name: z.zone_name,
+    score: z.average_impact,
+    color: z.average_impact >= 70 ? 'bg-red-500' : z.average_impact >= 50 ? 'bg-orange-500' : 'bg-amber-500',
+    barColor: z.average_impact >= 70 ? 'bg-red-500/20' : z.average_impact >= 50 ? 'bg-orange-500/20' : 'bg-amber-500/20',
+    label: z.recommendation === 'IMMEDIATE' ? 'Critical' : z.recommendation === 'HIGH' ? 'High' : 'Medium',
+    labelColor: z.average_impact >= 70 ? 'text-red-400' : z.average_impact >= 50 ? 'text-orange-400' : 'text-amber-400',
+  })) ?? [];
+
+  const availableCount = officerData.filter(o => o.status === 'Available').length;
+  const enRouteCount = officerData.filter(o => o.status === 'En Route').length;
+  const onSceneCount = officerData.filter(o => o.status === 'On Scene').length;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -212,19 +219,19 @@ export default function Dispatch() {
               </div>
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
-                <span className="text-sm font-bold text-green-400 tracking-wide">● 12 Officers Active</span>
+                <span className="text-sm font-bold text-green-400 tracking-wide">● {officerData.length} Officers Active</span>
               </div>
             </div>
 
             {/* KPI Cards Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {[
-                { title: 'Active Officers', value: 12, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: 'All shifts covered' },
-                { title: 'Available Officers', value: 4, icon: UserCheck, color: 'text-green-400', bg: 'bg-green-500/10', trend: 'Ready to dispatch' },
-                { title: 'En Route', value: 5, icon: Navigation, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: '2 critical zones' },
-                { title: 'On Scene', value: 3, icon: MapPin, color: 'text-orange-400', bg: 'bg-orange-500/10', trend: 'Handling violations' },
-                { title: 'Avg Response Time', value: 3.4, icon: Clock, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: '↓ 0.3 min improved', isFloat: true },
-                { title: 'Resolved Today', value: 145, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: '+12 this hour' },
+                { title: 'Active Officers', value: officerData.length, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: 'All shifts covered' },
+                { title: 'Available Officers', value: availableCount, icon: UserCheck, color: 'text-green-400', bg: 'bg-green-500/10', trend: 'Ready to dispatch' },
+                { title: 'En Route', value: enRouteCount, icon: Navigation, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: `${assignmentsData.filter(a => a.status === 'EN ROUTE').length} active assignments` },
+                { title: 'On Scene', value: onSceneCount, icon: MapPin, color: 'text-orange-400', bg: 'bg-orange-500/10', trend: 'Handling violations' },
+                { title: 'Avg Response Time', value: summary?.avg_response_time_min ?? 0, icon: Clock, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: '↓ 0.3 min improved', isFloat: true },
+                { title: 'Resolved Today', value: summary?.total_violations ?? 0, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: 'This period' },
               ].map((stat, i) => (
                 <motion.div 
                   key={i} 
@@ -259,13 +266,7 @@ export default function Dispatch() {
                     HIGH PRIORITY ZONES
                   </h2>
                   <div className="space-y-4">
-                    {[
-                      { name: 'Railway Station', score: 94, color: 'bg-red-500', barColor: 'bg-red-500/20', label: 'Critical', labelColor: 'text-red-400' },
-                      { name: 'Bus Stand', score: 89, color: 'bg-orange-500', barColor: 'bg-orange-500/20', label: 'High', labelColor: 'text-orange-400' },
-                      { name: 'City Center', score: 86, color: 'bg-orange-500', barColor: 'bg-orange-500/20', label: 'High', labelColor: 'text-orange-400' },
-                      { name: 'Market Road', score: 82, color: 'bg-amber-500', barColor: 'bg-amber-500/20', label: 'Medium', labelColor: 'text-amber-400' },
-                      { name: 'Hospital Circle', score: 75, color: 'bg-amber-500', barColor: 'bg-amber-500/20', label: 'Medium', labelColor: 'text-amber-400' },
-                    ].map((zone, i) => (
+                    {highPriorityZones.map((zone, i) => (
                       <div key={i} className="space-y-1.5">
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-medium text-slate-300 flex items-center gap-2">
@@ -476,11 +477,14 @@ export default function Dispatch() {
                     <Radio size={16} className="text-purple-400" />
                     OFFICER STATUS
                   </h2>
-                  <span className="text-xs font-semibold text-slate-400">8 Active</span>
+                  <span className="text-xs font-semibold text-slate-400">{officerData.length} Active</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                   <AnimatePresence>
-                    {officerData.map((officer, i) => (
+                    {officerData.map((officer, i) => {
+                      const cc = COLOR_CLASSES[officer.color] || COLOR_CLASSES.green;
+                      const initials = officer.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                      return (
                       <motion.div 
                         key={officer.id}
                         initial={{ opacity: 0, y: 10 }}
@@ -489,8 +493,8 @@ export default function Dispatch() {
                         className="bg-white/5 border border-white/5 rounded-xl p-3 flex items-center justify-between hover:bg-white/10 hover:border-white/10 transition-all duration-300 group hover:scale-[1.01]"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-${officer.color}-500/20 text-${officer.color}-400 border border-${officer.color}-500/30 shadow-[0_0_10px_rgba(0,0,0,0)] group-hover:shadow-[0_0_15px_var(--tw-shadow-color)] group-hover:shadow-${officer.color}-500/20 transition-all`}>
-                            O{officer.id}
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${cc.bg} ${cc.text} ${cc.border}`}>
+                            {initials}
                           </div>
                           <div>
                             <h4 className="text-sm font-bold text-slate-200">{officer.name}</h4>
@@ -498,13 +502,14 @@ export default function Dispatch() {
                           </div>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1.5">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider bg-${officer.color}-500/10 border-${officer.color}-500/20 text-${officer.color}-400`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${cc.bgLight} ${cc.borderLight} ${cc.text}`}>
                             {officer.status}
                           </span>
                           <span className="text-xs font-semibold text-slate-300"><span className="text-slate-500 font-normal mr-1">{officer.statLabel}:</span>{officer.statVal}</span>
                         </div>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               </motion.div>
@@ -560,7 +565,7 @@ export default function Dispatch() {
                             </td>
                             <td className="py-3 px-4 text-xs font-medium text-slate-300">{row.eta}</td>
                             <td className="py-3 px-4">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider bg-${row.color}-500/10 border-${row.color}-500/20 text-${row.color}-400`}>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${(COLOR_CLASSES[row.color] || COLOR_CLASSES.green).bgLight} ${(COLOR_CLASSES[row.color] || COLOR_CLASSES.green).borderLight} ${(COLOR_CLASSES[row.color] || COLOR_CLASSES.green).text}`}>
                                 {row.status}
                               </span>
                             </td>

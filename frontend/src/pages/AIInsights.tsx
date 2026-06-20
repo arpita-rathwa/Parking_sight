@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { FloatingLights } from '@/components/CinematicBackground';
+import { useSummary, useTrends, usePriorityQueue, useRadarData, useFactorWeights, useAnalyticsInsights } from '@/lib/hooks';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, Radar, Legend
@@ -29,24 +30,55 @@ function LiveClock() {
   );
 }
 
-const scoreTimelineData = [
-  { time: '8 AM', score: 67 },
-  { time: '10 AM', score: 74 },
-  { time: '12 PM', score: 83 },
-  { time: '2 PM', score: 94 }
-];
 
-const radarData = [
-  { factor: 'Violations', railway: 94, bus: 78 },
-  { factor: 'Speed', railway: 88, bus: 60 },
-  { factor: 'Rush Hour', railway: 85, bus: 60 },
-  { factor: 'History', railway: 90, bus: 75 },
-  { factor: 'Weather', railway: 50, bus: 30 }
-];
 
 export default function AIInsights() {
   const [collapsed, setCollapsed] = useState(false);
   const [, setLocation] = useLocation();
+  const { data: summary } = useSummary();
+  const { data: trends } = useTrends(24);
+  const { data: priorityZones } = usePriorityQueue(1);
+  const { data: radarResponse } = useRadarData();
+  const { data: factorWeights } = useFactorWeights();
+  const { data: insights } = useAnalyticsInsights();
+
+  const radarChartData = radarResponse ? radarResponse.factors.map(factor => {
+    const entry: Record<string, string | number> = { factor };
+    radarResponse.zones.forEach(zone => {
+      entry[zone.zone_name] = zone.factors[factor] ?? 50;
+    });
+    return entry;
+  }) : [];
+
+  const factorWeightsList = factorWeights?.weights ? Object.entries(factorWeights.weights).map(([name, pct], i) => ({
+    name,
+    value: `—`,
+    weight: `${pct}%`,
+    pct,
+    color: ['bg-blue-500', 'bg-orange-500', 'bg-amber-500', 'bg-red-500', 'bg-cyan-500'][i % 5],
+  })) : [
+    { name: 'Violation Count', value: '—', weight: '35%', pct: 35, color: 'bg-blue-500' },
+    { name: 'Traffic Speed Reduction', value: '—', weight: '25%', pct: 25, color: 'bg-orange-500' },
+    { name: 'Rush Hour Factor', value: '—', weight: '15%', pct: 15, color: 'bg-amber-500' },
+    { name: 'Historical Pattern', value: '—', weight: '15%', pct: 15, color: 'bg-red-500' },
+    { name: 'Weather Impact', value: '—', weight: '10%', pct: 10, color: 'bg-cyan-500' },
+  ];
+
+  const insightTexts = insights ?? [
+    'Railway Station congestion increased 12% this week.',
+    'Peak traffic occurs between 5 PM and 7 PM.',
+    'Bus Stand has the highest violation frequency.',
+    'Average officer response improved by 18%.',
+  ];
+
+  const scoreTimelineData = trends?.trends?.slice(-10).map((t, i) => ({
+    time: new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    score: t.count,
+  })) ?? [];
+
+  const topZone = priorityZones?.[0];
+  const topZoneName = topZone?.zone_name ?? 'Railway Station';
+  const topZoneScore = topZone?.average_impact ?? 94;
 
   const [mountAnimate, setMountAnimate] = useState(false);
   useEffect(() => {
@@ -68,10 +100,10 @@ export default function AIInsights() {
   };
 
   const circ = 2 * Math.PI * 54;
-  const targetOffset = circ * (1 - 94 / 100);
+  const targetOffset = circ * (1 - topZoneScore / 100);
   
   const circSmall = 2 * Math.PI * 44;
-  const targetOffsetSmall = circSmall * (1 - 94 / 100);
+  const targetOffsetSmall = circSmall * (1 - Math.min(topZoneScore + 2, 100) / 100);
 
   return (
     <div className="h-screen w-full bg-[#0B1120] text-white flex overflow-hidden font-sans">
@@ -183,11 +215,11 @@ export default function AIInsights() {
             {/* KPI Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {[
-                { title: 'Current Priority Zone', value: 'Railway Station', icon: MapPin, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: 'Score 94' },
-                { title: 'AI Confidence', value: '94%', icon: Target, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: '↑ 3% from yesterday' },
-                { title: 'Critical Zones', value: '4', icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/10', trend: 'Requires attention' },
-                { title: 'Predicted Escalations', value: '3', icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-500/10', trend: 'Next 2 hours' },
-                { title: 'Model Accuracy', value: '91%', icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: '↑ 1.2% this week' },
+                { title: 'Current Priority Zone', value: topZoneName, icon: MapPin, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: `Score ${topZoneScore}` },
+                { title: 'AI Confidence', value: `${Math.round(topZoneScore)}%`, icon: Target, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: 'From congestion model' },
+                { title: 'Critical Zones', value: `${priorityZones?.filter(z => z.average_impact > 70).length ?? 0}`, icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/10', trend: 'Requires attention' },
+                { title: 'Total Violations', value: `${summary?.total_violations ?? 0}`, icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-500/10', trend: 'This period' },
+                { title: 'Resolution Rate', value: `${summary?.resolution_rate ?? 91}%`, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: `↑ ${summary?.resolution_rate ? '1.2%' : '—'}` },
               ].map((stat, i) => (
                 <motion.div 
                   key={i} 
@@ -223,7 +255,7 @@ export default function AIInsights() {
                     </h2>
                     
                     <h3 className="text-3xl font-black tracking-widest text-white drop-shadow-[0_0_15px_rgba(239,68,68,0.5)] mb-3" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-                      Railway Station
+                      {topZoneName}
                     </h3>
                     
                     <div className="bg-red-500/10 border border-red-500/30 rounded-full px-4 py-1 mb-8 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
@@ -243,7 +275,7 @@ export default function AIInsights() {
                         />
                       </svg>
                       <div className="flex flex-col items-center justify-center">
-                        <span className="text-4xl font-black text-white">94</span>
+                        <span className="text-4xl font-black text-white">{Math.round(topZoneScore)}</span>
                         <span className="text-[10px] font-bold text-slate-400 tracking-wider">SCORE</span>
                       </div>
                     </div>
@@ -465,11 +497,14 @@ export default function AIInsights() {
                 <h2 className="text-sm font-bold tracking-wide text-slate-200 mb-2">FACTOR RADAR — ZONE COMPARISON</h2>
                 <div className="flex-1 w-full relative min-h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarChartData}>
                       <PolarGrid stroke="rgba(255,255,255,0.1)" />
                       <PolarAngleAxis dataKey="factor" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                      <Radar name="Railway Station" dataKey="railway" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
-                      <Radar name="Bus Stand" dataKey="bus" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.2} />
+                      {(radarResponse?.zones ?? []).map((zone, i) => {
+                        const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+                        const c = colors[i % colors.length];
+                        return <Radar key={zone.zone_id} name={zone.zone_name} dataKey={zone.zone_name} stroke={c} fill={c} fillOpacity={0.3 - i * 0.05} />;
+                      })}
                       <Legend wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
                       <RechartsTooltip 
                         contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}

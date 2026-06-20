@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,20 +15,46 @@ from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
 from shared.models.zones import Zone
 from shared.redis.client import redis_client
+from shared.auth.routes import router as auth_router
+from shared.utils.migrations import run_migrations
+from shared.utils.sentry import init_sentry
+from services.scoring.worker import start_worker, stop_worker
+
+logger = logging.getLogger("scoring-service")
 
 app = FastAPI(title="scoring-service", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(StructuredLoggingMiddleware)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=get_engine())
+    run_migrations()
+    init_sentry(settings.SERVICE_NAME)
 
 
 @app.on_event("startup")
 async def init_redis():
     await redis_client.init()
+
+
+@app.on_event("startup")
+def start_scoring_worker():
+    logger.info("Starting scoring worker...")
+    start_worker()
+
+
+@app.on_event("shutdown")
+def shutdown_scoring_worker():
+    stop_worker()
 
 
 @app.get(f"{settings.API_V1_PREFIX}/zones/{{zone_id}}/impact")

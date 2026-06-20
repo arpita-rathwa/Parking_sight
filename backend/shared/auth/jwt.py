@@ -11,6 +11,14 @@ from shared.config.settings import settings
 from shared.models.database import get_db
 from shared.models.users import User
 
+if not settings.JWT_SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY is not set. Set it in .env or environment variables "
+        "before starting the service. Example:\n"
+        "  JWT_SECRET_KEY=your-secure-random-secret-key\n"
+        "You can generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 

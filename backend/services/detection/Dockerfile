@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.base.txt requirements.detection.txt ./
+RUN pip install --no-cache-dir -r requirements.base.txt -r requirements.detection.txt
 
 COPY shared/ ./shared/
-COPY detection-service/ ./detection-service/
+COPY services/detection/ ./services/detection/
 
-CMD ["uvicorn", "detection-service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "services.detection.main:app", "--host", "0.0.0.0", "--port", "8001"]

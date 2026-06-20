@@ -6,9 +6,11 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from detector.geometry import filter_detections_by_roi, point_in_polygon
 from detector.model import DetectionModel
 from detector.types import CameraConfig, DetectionResult, VehicleType
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pipeline.batcher import BatchInferencePipeline
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -21,12 +23,22 @@ from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
+from shared.models.cameras import Camera
 from shared.models.database import Base, get_db, get_engine
 from shared.models.violations import Violation
+from shared.utils.migrations import run_migrations
+from shared.utils.sentry import init_sentry
 
 logger = logging.getLogger("detection-service")
 
 app = FastAPI(title="detection-service", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(StructuredLoggingMiddleware)
 app.include_router(auth_router)
@@ -40,7 +52,8 @@ _executor: asyncio.AbstractEventLoop | None = None
 @app.on_event("startup")
 def on_startup():
     global model, pipeline
-    Base.metadata.create_all(bind=get_engine())
+    run_migrations()
+    init_sentry(settings.SERVICE_NAME)
     model = DetectionModel(
         model_path=settings.MODEL_PATH,
         confidence_threshold=settings.DETECTION_CONFIDENCE_THRESHOLD,
@@ -77,6 +90,7 @@ class StreamStartRequest(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
     frame_interval: int = 5
+    roi_polygon: list[list[float]] | None = None
 
 
 def _decode_image(file: UploadFile) -> np.ndarray:
@@ -99,6 +113,7 @@ def _publish_detection(
     violation_id = uuid.uuid4()
     now = datetime.now(timezone.utc)
     violation_type = "detected"
+    zone_id = None
 
     close_session = False
     if db is None:
@@ -108,6 +123,11 @@ def _publish_detection(
         close_session = True
 
     try:
+        from shared.models.cameras import Camera
+
+        camera = db.query(Camera).filter(Camera.id == camera_id).first()
+        if camera:
+            zone_id = str(camera.zone_id)
         violation = Violation(
             id=violation_id,
             camera_id=uuid.UUID(camera_id) if camera_id else uuid.uuid4(),
@@ -129,6 +149,7 @@ def _publish_detection(
     event = {
         "violation_id": str(violation_id),
         "camera_id": camera_id,
+        "zone_id": zone_id,
         "latitude": latitude,
         "longitude": longitude,
         "timestamp": now.isoformat(),
@@ -164,6 +185,17 @@ async def detect_violation(
     frame = _decode_image(file)
     loop = asyncio.get_event_loop()
     detections = await loop.run_in_executor(None, model.predict_single, frame)
+
+    camera = db.query(Camera).filter(Camera.id == camera_id).first()
+    roi = camera.roi_polygon if camera else None
+    if roi:
+        try:
+            import json
+            roi_parsed = json.loads(roi)
+            h, w = frame.shape[:2]
+            detections = filter_detections_by_roi(detections, roi_parsed, w, h)
+        except (json.JSONDecodeError, TypeError):
+            pass
 
     if not detections:
         return {
@@ -202,6 +234,15 @@ async def detect_violation(
 
 
 def _pipeline_callback(camera_id: str, detections: list[DetectionResult]) -> None:
+    config = stream_manager.get_config(camera_id)
+    if config and config.roi_polygon:
+        detections = [
+            d for d in detections
+            if d.bbox and point_in_polygon(
+                d.bbox.center[0], d.bbox.center[1],
+                config.roi_polygon,
+            )
+        ]
     for det in detections:
         try:
             _publish_detection(
@@ -231,6 +272,10 @@ async def start_stream(
         latitude=req.latitude,
         longitude=req.longitude,
         frame_interval=req.frame_interval,
+        roi_polygon=(
+            [tuple(p) for p in req.roi_polygon]
+            if req.roi_polygon else None
+        ),
     )
 
     try:

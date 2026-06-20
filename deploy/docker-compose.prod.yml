@@ -1,0 +1,115 @@
+# Production overrides for docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+
+version: "3.9"
+
+x-prod-service: &prod-service
+  restart: unless-stopped
+  logging:
+    driver: "awslogs"
+    options:
+      awslogs-group: "${CLOUDWATCH_LOG_GROUP:-parksight}"
+      awslogs-region: "${AWS_REGION:-ap-south-1}"
+      awslogs-stream: "${SERVICE_NAME}"
+
+services:
+  detection-service:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "4G"
+        reservations:
+          cpus: "1"
+          memory: "2G"
+
+  scoring-service:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "2G"
+        reservations:
+          cpus: "0.5"
+          memory: "1G"
+
+  queue-service:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          memory: "512M"
+
+  dashboard-api:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          memory: "512M"
+
+  officer-app-api:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          memory: "512M"
+
+  notification-service:
+    <<: *prod-service
+    deploy:
+      resources:
+        limits:
+          memory: "512M"
+
+  frontend:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: "256M"
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "${CLOUDWATCH_LOG_GROUP:-parksight}"
+        awslogs-region: "${AWS_REGION:-ap-south-1}"
+        awslogs-stream: "frontend"
+
+  postgres:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: "2G"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "${CLOUDWATCH_LOG_GROUP:-parksight}"
+        awslogs-region: "${AWS_REGION:-ap-south-1}"
+        awslogs-stream: "postgres"
+
+  redis:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: "512M"
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "${CLOUDWATCH_LOG_GROUP:-parksight}"
+        awslogs-region: "${AWS_REGION:-ap-south-1}"
+        awslogs-stream: "redis"
+
+  kafka:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: "2G"
+
+  zookeeper:
+    restart: unless-stopped

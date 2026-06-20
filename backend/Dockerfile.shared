@@ -4,13 +4,8 @@ RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/li
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.base.txt .
+RUN pip install --no-cache-dir -r requirements.base.txt
 
 COPY shared/ ./shared/
-COPY detection-service/ ./detection-service/
-COPY scoring-service/ ./scoring-service/
-COPY queue-service/ ./queue-service/
-COPY notification-service/ ./notification-service/
-COPY dashboard-api/ ./dashboard-api/
-COPY officer-app-api/ ./officer-app-api/
+COPY services/ ./services/

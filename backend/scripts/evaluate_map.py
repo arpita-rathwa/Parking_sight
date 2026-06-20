@@ -1,5 +1,5 @@
 """
-mAP@0.5 evaluation script for detection-service.
+mAP@0.5 evaluation script for the detection service.
 
 Usage:
     python scripts/evaluate_map.py --model-path yolov8n.pt --data-dir ./eval_data
@@ -13,8 +13,12 @@ import json
 import sys
 from pathlib import Path
 
-from detector.model import DetectionModel
-from detector.types import BoundingBox
+DETECTOR_PATH = Path(__file__).resolve().parent.parent / "services" / "detection"
+if str(DETECTOR_PATH) not in sys.path:
+    sys.path.insert(0, str(DETECTOR_PATH))
+
+from detector.model import DetectionModel  # noqa: E402
+from detector.types import BoundingBox  # noqa: E402
 
 
 def compute_iou(a: BoundingBox, b: BoundingBox) -> float:

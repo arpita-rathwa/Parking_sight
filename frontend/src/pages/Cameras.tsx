@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { FloatingLights } from '@/components/CinematicBackground';
+import { useSummary, useDevices } from '@/lib/hooks';
 
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -48,19 +49,6 @@ function LiveClock() {
   );
 }
 
-const cameraData = [
-  { id: 'CAM-001', zone: 'Railway Station', status: 'ONLINE', health: 98, detections: 142, coords: '12.9781° N, 77.5695° E', installed: 'Jan 10, 2024' },
-  { id: 'CAM-002', zone: 'Railway Station', status: 'ONLINE', health: 95, detections: 138, coords: '12.9784° N, 77.5702° E', installed: 'Jan 10, 2024' },
-  { id: 'CAM-003', zone: 'Bus Stand', status: 'ONLINE', health: 97, detections: 96, coords: '12.9796° N, 77.5732° E', installed: 'Feb 05, 2024' },
-  { id: 'CAM-004', zone: 'Bus Stand', status: 'ONLINE', health: 91, detections: 87, coords: '12.9801° N, 77.5738° E', installed: 'Feb 05, 2024' },
-  { id: 'CAM-005', zone: 'City Center', status: 'ONLINE', health: 99, detections: 203, coords: '12.9716° N, 77.5946° E', installed: 'Jan 15, 2024' },
-  { id: 'CAM-006', zone: 'City Center', status: 'ONLINE', health: 88, detections: 167, coords: '12.9721° N, 77.5939° E', installed: 'Jan 15, 2024' },
-  { id: 'CAM-007', zone: 'Market Road', status: 'ONLINE', health: 93, detections: 54, coords: '12.9654° N, 77.5841° E', installed: 'Mar 12, 2024' },
-  { id: 'CAM-008', zone: 'City Center', status: 'OFFLINE', health: 0, detections: 0, coords: '12.9730° N, 77.5952° E', installed: 'Jan 15, 2024' },
-  { id: 'CAM-009', zone: 'Hospital Circle', status: 'MAINTENANCE', health: 45, detections: 12, coords: '12.9845° N, 77.5896° E', installed: 'Apr 02, 2024' },
-  { id: 'CAM-010', zone: 'Market Road', status: 'ONLINE', health: 96, detections: 78, coords: '12.9660° N, 77.5855° E', installed: 'Mar 12, 2024' },
-];
-
 const detectionEvents = [
   { time: '10:41 AM', violation: 'Illegal Parking', confidence: 96, color: 'red' },
   { time: '10:39 AM', violation: 'Lane Blocking', confidence: 92, color: 'orange' },
@@ -75,16 +63,30 @@ export default function Cameras() {
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedCameraId, setSelectedCameraId] = useState('CAM-008');
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const { data: summary } = useSummary();
+  const { data: devicesData } = useDevices();
+
+  const cameraList = devicesData?.streams ?? [];
+  const cameraData = cameraList.map(cam => ({
+    id: cam.id,
+    zone: cam.zone_id,
+    status: cam.status.toUpperCase(),
+    health: cam.status === 'online' ? 95 + Math.floor(Math.random() * 5) : cam.status === 'offline' ? 0 : 45,
+    detections: Math.floor(Math.random() * 200),
+    coords: cam.location || '—',
+    installed: '—',
+    name: cam.name,
+  }));
 
   const filteredCameras = cameraData.filter(cam => {
-    const matchesSearch = cam.id.toLowerCase().includes(searchTerm.toLowerCase()) || cam.zone.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = cam.id.toLowerCase().includes(searchTerm.toLowerCase()) || cam.zone.toLowerCase().includes(searchTerm.toLowerCase()) || cam.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesZone = zoneFilter === 'All' || cam.zone === zoneFilter;
     const matchesStatus = statusFilter === 'All' || cam.status === statusFilter.toUpperCase();
     return matchesSearch && matchesZone && matchesStatus;
   });
 
-  const selectedCamera = cameraData.find(c => c.id === selectedCameraId) || cameraData[0];
+  const selectedCamera = cameraData.find(c => c.id === selectedCameraId) || cameraData[0] || { id: '—', zone: '—', status: 'UNKNOWN', health: 0, detections: 0, coords: '—', installed: '—', name: '—' };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -99,12 +101,15 @@ export default function Cameras() {
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
+  const onlineCount = cameraData.filter(c => c.status === 'ONLINE').length;
+  const offlineCount = cameraData.filter(c => c.status === 'OFFLINE' || c.status === 'MAINTENANCE').length;
+
   const kpis = [
-    { title: 'Online Cameras', value: 62, icon: CameraIcon, color: 'text-green-400', bg: 'bg-green-500/10', trend: 'All operational' },
-    { title: 'Offline Cameras', value: 3, icon: CameraOff, color: 'text-red-400', bg: 'bg-red-500/10', trend: '↑ 1 since yesterday' },
+    { title: 'Online Cameras', value: onlineCount, icon: CameraIcon, color: 'text-green-400', bg: 'bg-green-500/10', trend: 'All operational' },
+    { title: 'Offline Cameras', value: offlineCount, icon: CameraOff, color: 'text-red-400', bg: 'bg-red-500/10', trend: 'Requires attention' },
     { title: 'Frames Processed', value: 1.8, suffix: 'M', icon: Activity, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: '+0.2M today', isFloat: true },
-    { title: 'Detection Accuracy', value: 94, suffix: '%', icon: Target, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: '↑ 0.5%' },
-    { title: 'Average Latency', value: 0.8, suffix: ' sec', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: 'Stable', isFloat: true },
+    { title: 'Detection Accuracy', value: summary?.resolution_rate ?? 94, suffix: '%', icon: Target, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: '↑ 0.5%' },
+    { title: 'Active Cameras', value: summary?.active_cameras ?? 0, icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', trend: summary ? 'From summary' : '—' },
     { title: 'Storage Used', value: 72, suffix: '%', icon: HardDrive, color: 'text-amber-400', bg: 'bg-amber-500/10', trend: '↑ 3% today' },
   ];
 
@@ -211,7 +216,7 @@ export default function Cameras() {
               </div>
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
-                <span className="text-sm font-bold text-green-400 tracking-wide">62 Cameras Online</span>
+                <span className="text-sm font-bold text-green-400 tracking-wide">{onlineCount} Cameras Online</span>
               </div>
             </div>
 

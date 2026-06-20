@@ -2,14 +2,26 @@ import asyncio
 import threading
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
+from shared.auth.routes import router as auth_router
 from shared.config.settings import settings
 from shared.kafka.consumer import create_consumer
 from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.utils.migrations import run_migrations
+from shared.utils.sentry import init_sentry
 
 app = FastAPI(title="notification-service", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(StructuredLoggingMiddleware)
+app.include_router(auth_router)
 
 
 class NotificationManager:
@@ -69,6 +81,8 @@ def start_kafka_consumers():
 
 @app.on_event("startup")
 async def startup():
+    run_migrations()
+    init_sentry(settings.SERVICE_NAME)
     threading.Thread(target=start_kafka_consumers, daemon=True).start()
 
 

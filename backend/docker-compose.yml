@@ -1,18 +1,59 @@
 version: "3.9"
 
+x-common-env: &common-env
+  PYTHONPATH: /app
+  DATABASE_URL: "${DATABASE_URL:-postgresql+psycopg2://parksight:parksight@postgres:5432/parksight}"
+  REDIS_URL: "${REDIS_URL:-redis://redis:6379/0}"
+  KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
+  JWT_SECRET_KEY: "${JWT_SECRET_KEY:-change-me-in-production}"
+  CORS_ORIGINS: "${CORS_ORIGINS:-*}"
+  SENTRY_DSN: "${SENTRY_DSN:-}"
+  RATE_LIMIT_ENABLED: "${RATE_LIMIT_ENABLED:-true}"
+
 services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@parksight.local}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`traefik.parksight.local`)"
+      - "traefik.http.routers.api.service=api@internal"
+    depends_on:
+      - frontend
+      - detection-service
+      - scoring-service
+      - queue-service
+      - dashboard-api
+      - officer-app-api
+      - notification-service
+
   postgres:
     image: postgis/postgis:16-3.4
     environment:
-      POSTGRES_DB: parksight
-      POSTGRES_USER: parksight
-      POSTGRES_PASSWORD: parksight
+      POSTGRES_DB: "${POSTGRES_DB:-parksight}"
+      POSTGRES_USER: "${POSTGRES_USER:-parksight}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-parksight}"
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parksight"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-parksight}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,6 +62,8 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -49,105 +92,159 @@ services:
     ports:
       - "2181:2181"
 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/api}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-parksight.local}`) || PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
   detection-service:
     build:
       context: .
-      dockerfile: Dockerfile.shared
-    command: uvicorn detection-service.main:app --host 0.0.0.0 --port 8001 --reload
-    ports:
-      - "8001:8001"
+      dockerfile: services/detection/Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8001
+    expose:
+      - "8001"
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: detection
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.detection.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/detect`)"
+      - "traefik.http.routers.detection.entrypoints=web"
+      - "traefik.http.services.detection.loadbalancer.server.port=8001"
 
   scoring-service:
     build:
       context: .
-      dockerfile: Dockerfile.shared
-    command: uvicorn scoring-service.main:app --host 0.0.0.0 --port 8002 --reload
-    ports:
-      - "8002:8002"
+      dockerfile: services/scoring/Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8002
+    expose:
+      - "8002"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: scoring
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.scoring.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/zones`)"
+      - "traefik.http.routers.scoring.entrypoints=web"
+      - "traefik.http.services.scoring.loadbalancer.server.port=8002"
 
   queue-service:
     build:
       context: .
       dockerfile: Dockerfile.shared
-    command: uvicorn queue-service.main:app --host 0.0.0.0 --port 8003 --reload
-    ports:
-      - "8003:8003"
+    command: uvicorn main:app --host 0.0.0.0 --port 8003
+    expose:
+      - "8003"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: queue
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.queue.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/dispatch`)"
+      - "traefik.http.routers.queue.entrypoints=web"
+      - "traefik.http.services.queue.loadbalancer.server.port=8003"
 
   dashboard-api:
     build:
       context: .
       dockerfile: Dockerfile.shared
-    command: uvicorn dashboard-api.main:app --host 0.0.0.0 --port 8004 --reload
-    ports:
-      - "8004:8004"
+    command: uvicorn main:app --host 0.0.0.0 --port 8004
+    expose:
+      - "8004"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: dashboard
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/analytics`)"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=8004"
 
   officer-app-api:
     build:
       context: .
       dockerfile: Dockerfile.shared
-    command: uvicorn officer-app-api.main:app --host 0.0.0.0 --port 8005 --reload
-    ports:
-      - "8005:8005"
+    command: uvicorn main:app --host 0.0.0.0 --port 8005
+    expose:
+      - "8005"
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: officer-app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.officer.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/officer`)"
+      - "traefik.http.routers.officer.entrypoints=web"
+      - "traefik.http.services.officer.loadbalancer.server.port=8005"
 
   notification-service:
     build:
       context: .
       dockerfile: Dockerfile.shared
-    command: uvicorn notification-service.main:app --host 0.0.0.0 --port 8006 --reload
-    ports:
-      - "8006:8006"
+    command: uvicorn main:app --host 0.0.0.0 --port 8006
+    expose:
+      - "8006"
     depends_on:
       kafka:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg2://parksight:parksight@postgres:5432/parksight
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      <<: *common-env
+      SERVICE_NAME: notification
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/notifications`)"
+      - "traefik.http.routers.notification.entrypoints=web"
+      - "traefik.http.services.notification.loadbalancer.server.port=8006"
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.shared
+    working_dir: /app
+    command: python scripts/seed_data.py
+    profiles:
+      - seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *common-env
 
 volumes:
   pgdata:
+  redisdata:
+  letsencrypt:
