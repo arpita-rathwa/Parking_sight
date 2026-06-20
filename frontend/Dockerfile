@@ -4,8 +4,8 @@ WORKDIR /app
 
 COPY package.json ./
 RUN sed -i \
-  -e 's/"@replit\/vite-plugin-cartographer": "catalog:"/"@replit\/vite-plugin-cartographer": "0.0.1"/g' \
-  -e 's/"@replit\/vite-plugin-dev-banner": "catalog:"/"@replit\/vite-plugin-dev-banner": "0.0.1"/g' \
+  -e 's/"@replit\/vite-plugin-cartographer": "catalog:"/"@replit\/vite-plugin-cartographer": "0.6.0"/g' \
+  -e 's/"@replit\/vite-plugin-dev-banner": "catalog:"/"@replit\/vite-plugin-dev-banner": "0.1.2"/g' \
   -e 's/"@replit\/vite-plugin-runtime-error-modal": "catalog:"/"@replit\/vite-plugin-runtime-error-modal": "0.0.1"/g' \
   -e 's/"@tailwindcss\/vite": "catalog:"/"@tailwindcss\/vite": "^4.0.0"/g' \
   -e 's/"@tanstack\/react-query": "catalog:"/"@tanstack\/react-query": "^5.62.0"/g' \
