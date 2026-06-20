@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_ae9ac109e13e5320b3a804be48a4a05b {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_ae9ac109e13e5320b3a804be48a4a05b" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_ae9ac109e13e5320b3a804be48a4a05b = L.map(
+                "map_ae9ac109e13e5320b3a804be48a4a05b",
+                {
+                    center: [12.9716, 77.5946],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 12,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_7bc312e15b925f64e30a163b59a24ac9 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_7bc312e15b925f64e30a163b59a24ac9.addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+            var circle_marker_935340f4c749c2f3980731c58be2de45 = L.circleMarker(
+                [13.00826046109566, 77.69519082696272],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 18.182758603322977, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_fcb6c8707642651847ac1cb826277a23 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_542ab3e84d220fb2328fa394fcb2bda3 = $(`<div id="html_542ab3e84d220fb2328fa394fcb2bda3" style="width: 100.0%; height: 100.0%;">Rank #1<br>Score: 81.8<br>Station: K.R. Pura<br>Junction: No Junction<br>Violations: 3291<br>Active Days: 149</div>`)[0];
+                popup_fcb6c8707642651847ac1cb826277a23.setContent(html_542ab3e84d220fb2328fa394fcb2bda3);
+            
+        
+
+        circle_marker_935340f4c749c2f3980731c58be2de45.bindPopup(popup_fcb6c8707642651847ac1cb826277a23)
+        ;
+
+        
+    
+    
+            var circle_marker_827be62e0764bba517f532864e6251b1 = L.circleMarker(
+                [13.007299985697763, 77.57105516198921],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 17.37492946739952, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_63eddc7775b3a225987fc988f72f1460 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_cc37c98c6efac6e8914e12adda57ed8f = $(`<div id="html_cc37c98c6efac6e8914e12adda57ed8f" style="width: 100.0%; height: 100.0%;">Rank #2<br>Score: 73.7<br>Station: Malleshwaram<br>Junction: No Junction<br>Violations: 2594<br>Active Days: 138</div>`)[0];
+                popup_63eddc7775b3a225987fc988f72f1460.setContent(html_cc37c98c6efac6e8914e12adda57ed8f);
+            
+        
+
+        circle_marker_827be62e0764bba517f532864e6251b1.bindPopup(popup_63eddc7775b3a225987fc988f72f1460)
+        ;
+
+        
+    
+    
+            var circle_marker_f9861b752604a8c4262da579b878f364 = L.circleMarker(
+                [12.98407613566294, 77.60352263047125],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 16.755505569092435, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_7c5dd30743eb8da66681eb9ba1034575 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_1f66dae832018b2bbe5cff380df59307 = $(`<div id="html_1f66dae832018b2bbe5cff380df59307" style="width: 100.0%; height: 100.0%;">Rank #3<br>Score: 67.6<br>Station: Shivajinagar<br>Junction: BTP211 - Central Street Junction<br>Violations: 2504<br>Active Days: 129</div>`)[0];
+                popup_7c5dd30743eb8da66681eb9ba1034575.setContent(html_1f66dae832018b2bbe5cff380df59307);
+            
+        
+
+        circle_marker_f9861b752604a8c4262da579b878f364.bindPopup(popup_7c5dd30743eb8da66681eb9ba1034575)
+        ;
+
+        
+    
+    
+            var circle_marker_ab87db1fa8c1f3834ea238ada133243d = L.circleMarker(
+                [12.981043596564627, 77.61022550727891],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 16.668819975313586, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_efb42683326ea2800fe5e25c70c65e39 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_7a8b0215d3bed7166f2bc549ad701138 = $(`<div id="html_7a8b0215d3bed7166f2bc549ad701138" style="width: 100.0%; height: 100.0%;">Rank #4<br>Score: 66.7<br>Station: Shivajinagar<br>Junction: BTP051 - Safina Plaza Junction<br>Violations: 2940<br>Active Days: 129</div>`)[0];
+                popup_efb42683326ea2800fe5e25c70c65e39.setContent(html_7a8b0215d3bed7166f2bc549ad701138);
+            
+        
+
+        circle_marker_ab87db1fa8c1f3834ea238ada133243d.bindPopup(popup_efb42683326ea2800fe5e25c70c65e39)
+        ;
+
+        
+    
+    
+            var circle_marker_3500f4d15e227e8ed6e688cf29c07f18 = L.circleMarker(
+                [12.97621994092292, 77.57736344016227],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 16.08665470749544, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_fb2f13b69d588757d3cf9a0a959746d8 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_da24e62da1fa5be475f9b60d5b84cadb = $(`<div id="html_da24e62da1fa5be475f9b60d5b84cadb" style="width: 100.0%; height: 100.0%;">Rank #5<br>Score: 60.9<br>Station: Upparpet<br>Junction: BTP040 - Elite Junction<br>Violations: 1972<br>Active Days: 127</div>`)[0];
+                popup_fb2f13b69d588757d3cf9a0a959746d8.setContent(html_da24e62da1fa5be475f9b60d5b84cadb);
+            
+        
+
+        circle_marker_3500f4d15e227e8ed6e688cf29c07f18.bindPopup(popup_fb2f13b69d588757d3cf9a0a959746d8)
+        ;
+
+        
+    
+    
+            var circle_marker_b9ce5bfcf7c83c5c6d6ffb57fa478b83 = L.circleMarker(
+                [12.99621328140331, 77.66853618596438],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15.452834393937618, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_ca40321944b1bead597f4e8bc2f35140 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_99d2fb66295ec56005ff2dd84ce3c816 = $(`<div id="html_99d2fb66295ec56005ff2dd84ce3c816" style="width: 100.0%; height: 100.0%;">Rank #6<br>Score: 54.5<br>Station: Mahadevapura<br>Junction: No Junction<br>Violations: 1624<br>Active Days: 126</div>`)[0];
+                popup_ca40321944b1bead597f4e8bc2f35140.setContent(html_99d2fb66295ec56005ff2dd84ce3c816);
+            
+        
+
+        circle_marker_b9ce5bfcf7c83c5c6d6ffb57fa478b83.bindPopup(popup_ca40321944b1bead597f4e8bc2f35140)
+        ;
+
+        
+    
+    
+            var circle_marker_346eb9840fb2adc49393123c2c98d95c = L.circleMarker(
+                [12.981518953634087, 77.60847150488722],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15.39064632853612, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_4af75d54cb3545a67e9f75b64b7f974c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_75ec262fc4bce68432052a0657eb5598 = $(`<div id="html_75ec262fc4bce68432052a0657eb5598" style="width: 100.0%; height: 100.0%;">Rank #7<br>Score: 53.9<br>Station: Shivajinagar<br>Junction: BTP051 - Safina Plaza Junction<br>Violations: 1596<br>Active Days: 138</div>`)[0];
+                popup_4af75d54cb3545a67e9f75b64b7f974c.setContent(html_75ec262fc4bce68432052a0657eb5598);
+            
+        
+
+        circle_marker_346eb9840fb2adc49393123c2c98d95c.bindPopup(popup_4af75d54cb3545a67e9f75b64b7f974c)
+        ;
+
+        
+    
+    
+            var circle_marker_21b10a37c555f1371292aa54950e3c63 = L.circleMarker(
+                [13.035357650870298, 77.58905224053902],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15.355578128561177, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_4da4a4c4b2313429af6c54e7d33e4c44 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_353c57a09b50a35336bb1c29a024215a = $(`<div id="html_353c57a09b50a35336bb1c29a024215a" style="width: 100.0%; height: 100.0%;">Rank #8<br>Score: 53.6<br>Station: Hebbala<br>Junction: No Junction<br>Violations: 1781<br>Active Days: 122</div>`)[0];
+                popup_4da4a4c4b2313429af6c54e7d33e4c44.setContent(html_353c57a09b50a35336bb1c29a024215a);
+            
+        
+
+        circle_marker_21b10a37c555f1371292aa54950e3c63.bindPopup(popup_4da4a4c4b2313429af6c54e7d33e4c44)
+        ;
+
+        
+    
+    
+            var circle_marker_c27348f1807b2536f72039cb13b42163 = L.circleMarker(
+                [12.97984527079848, 77.57492133307984],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.876488753706417, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_0b34b9ef009252e14793a5ceaa22727c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_7f7fa847e4f720c6b7c7c72ad2398482 = $(`<div id="html_7f7fa847e4f720c6b7c7c72ad2398482" style="width: 100.0%; height: 100.0%;">Rank #9<br>Score: 48.8<br>Station: Upparpet<br>Junction: BTP057 - Anand Rao Junction<br>Violations: 1315<br>Active Days: 123</div>`)[0];
+                popup_0b34b9ef009252e14793a5ceaa22727c.setContent(html_7f7fa847e4f720c6b7c7c72ad2398482);
+            
+        
+
+        circle_marker_c27348f1807b2536f72039cb13b42163.bindPopup(popup_0b34b9ef009252e14793a5ceaa22727c)
+        ;
+
+        
+    
+    
+            var circle_marker_1ece61fb96d0a33930470eced4375a78 = L.circleMarker(
+                [12.964668794010766, 77.58402918896365],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.544844093174735, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_d02ab2f43c0f66165c1ff622e7257f4a = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_6a247466547a3cf81697c9040802ac79 = $(`<div id="html_6a247466547a3cf81697c9040802ac79" style="width: 100.0%; height: 100.0%;">Rank #10<br>Score: 45.4<br>Station: Halasuru Gate<br>Junction: BTP080 - NR Road, SP Road Junction<br>Violations: 1486<br>Active Days: 110</div>`)[0];
+                popup_d02ab2f43c0f66165c1ff622e7257f4a.setContent(html_6a247466547a3cf81697c9040802ac79);
+            
+        
+
+        circle_marker_1ece61fb96d0a33930470eced4375a78.bindPopup(popup_d02ab2f43c0f66165c1ff622e7257f4a)
+        ;
+
+        
+    
+    
+            var circle_marker_f8cf70db9081340ea3171505f315303c = L.circleMarker(
+                [13.011921623038397, 77.55228957537562],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.436095053111046, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_ad95b0a20a96b4e3d03667458b064b13 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e71b0480c8ff96881cab8d6cfcc0d529 = $(`<div id="html_e71b0480c8ff96881cab8d6cfcc0d529" style="width: 100.0%; height: 100.0%;">Rank #11<br>Score: 44.4<br>Station: Malleshwaram<br>Junction: No Junction<br>Violations: 1198<br>Active Days: 127</div>`)[0];
+                popup_ad95b0a20a96b4e3d03667458b064b13.setContent(html_e71b0480c8ff96881cab8d6cfcc0d529);
+            
+        
+
+        circle_marker_f8cf70db9081340ea3171505f315303c.bindPopup(popup_ad95b0a20a96b4e3d03667458b064b13)
+        ;
+
+        
+    
+    
+            var circle_marker_a9b1169982f29658b1f1b6b7c6b427ea = L.circleMarker(
+                [13.011498001178317, 77.5545240486253],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.342864096592432, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_808c743415d31fe940a88aaa825a14a1 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_52b12206826a8b745ae08873063e0297 = $(`<div id="html_52b12206826a8b745ae08873063e0297" style="width: 100.0%; height: 100.0%;">Rank #12<br>Score: 43.4<br>Station: Malleshwaram<br>Junction: No Junction<br>Violations: 1273<br>Active Days: 119</div>`)[0];
+                popup_808c743415d31fe940a88aaa825a14a1.setContent(html_52b12206826a8b745ae08873063e0297);
+            
+        
+
+        circle_marker_a9b1169982f29658b1f1b6b7c6b427ea.bindPopup(popup_808c743415d31fe940a88aaa825a14a1)
+        ;
+
+        
+    
+    
+            var circle_marker_0ed5630dbbf337a87f50a4e2f1cbfa2d = L.circleMarker(
+                [12.964636803153523, 77.57630488637325],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.30108687888072, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_33909f27e3ab4b1b6eb008a37931f4b4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_7150f4aad65c0725d7162894328f6a06 = $(`<div id="html_7150f4aad65c0725d7162894328f6a06" style="width: 100.0%; height: 100.0%;">Rank #13<br>Score: 43.0<br>Station: City Market<br>Junction: BTP082 - KR Market Junction<br>Violations: 1475<br>Active Days: 97</div>`)[0];
+                popup_33909f27e3ab4b1b6eb008a37931f4b4.setContent(html_7150f4aad65c0725d7162894328f6a06);
+            
+        
+
+        circle_marker_0ed5630dbbf337a87f50a4e2f1cbfa2d.bindPopup(popup_33909f27e3ab4b1b6eb008a37931f4b4)
+        ;
+
+        
+    
+    
+            var circle_marker_ad6f6af13dbc208770ef9ed109aa0402 = L.circleMarker(
+                [12.967965044673234, 77.57465127412713],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.255397116531691, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_4a746a1252a6eb8ce160c31ab0a0bfc2 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_942ac765e9ee6a6fdac43072fab5a25d = $(`<div id="html_942ac765e9ee6a6fdac43072fab5a25d" style="width: 100.0%; height: 100.0%;">Rank #14<br>Score: 42.6<br>Station: Chamarajpet<br>Junction: BTP083 - AS Char Street, Mysore Road<br>Violations: 1117<br>Active Days: 112</div>`)[0];
+                popup_4a746a1252a6eb8ce160c31ab0a0bfc2.setContent(html_942ac765e9ee6a6fdac43072fab5a25d);
+            
+        
+
+        circle_marker_ad6f6af13dbc208770ef9ed109aa0402.bindPopup(popup_4a746a1252a6eb8ce160c31ab0a0bfc2)
+        ;
+
+        
+    
+    
+            var circle_marker_98e43e55b8e7b4005eaf56a12279cde3 = L.circleMarker(
+                [12.964875231106607, 77.538857234816],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.237980491172506, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_b93d872c43251d83a9131518b886ea6e = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b773196b5541f9d77c333e21f7bba6dc = $(`<div id="html_b773196b5541f9d77c333e21f7bba6dc" style="width: 100.0%; height: 100.0%;">Rank #15<br>Score: 42.4<br>Station: Vijayanagara<br>Junction: BTP016 - 5th Main Road, RPC Layout<br>Violations: 1535<br>Active Days: 81</div>`)[0];
+                popup_b93d872c43251d83a9131518b886ea6e.setContent(html_b773196b5541f9d77c333e21f7bba6dc);
+            
+        
+
+        circle_marker_98e43e55b8e7b4005eaf56a12279cde3.bindPopup(popup_b93d872c43251d83a9131518b886ea6e)
+        ;
+
+        
+    
+    
+            var circle_marker_84295aa6859895dc58c5d808dba6c801 = L.circleMarker(
+                [12.973483564089122, 77.55109849193971],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.14578764256952, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_c47c86c84c86017979609038b8d4ef73 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e199969fd22a212e1b820d182d48b6c4 = $(`<div id="html_e199969fd22a212e1b820d182d48b6c4" style="width: 100.0%; height: 100.0%;">Rank #16<br>Score: 41.5<br>Station: Magadi Road<br>Junction: BTP070 - Cholurpalya Junction, Magadi Road<br>Violations: 1526<br>Active Days: 85</div>`)[0];
+                popup_c47c86c84c86017979609038b8d4ef73.setContent(html_e199969fd22a212e1b820d182d48b6c4);
+            
+        
+
+        circle_marker_84295aa6859895dc58c5d808dba6c801.bindPopup(popup_c47c86c84c86017979609038b8d4ef73)
+        ;
+
+        
+    
+    
+            var circle_marker_82563ce9dab8a4b0aa7dd4e9a8fe4716 = L.circleMarker(
+                [13.184241123851203, 77.67977461728665],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14.11324726375908, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_4ccd0606bea88ec4d509ca7872300e33 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_91bd6df223e9179db76b1b107dbc026d = $(`<div id="html_91bd6df223e9179db76b1b107dbc026d" style="width: 100.0%; height: 100.0%;">Rank #17<br>Score: 41.1<br>Station: Chikkajala<br>Junction: No Junction<br>Violations: 914<br>Active Days: 123</div>`)[0];
+                popup_4ccd0606bea88ec4d509ca7872300e33.setContent(html_91bd6df223e9179db76b1b107dbc026d);
+            
+        
+
+        circle_marker_82563ce9dab8a4b0aa7dd4e9a8fe4716.bindPopup(popup_4ccd0606bea88ec4d509ca7872300e33)
+        ;
+
+        
+    
+    
+            var circle_marker_05149eaa158ab2d18085c116127bedeb = L.circleMarker(
+                [13.005736635517534, 77.68587283787829],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13.970051373396627, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_fedc4516c85430027f221044ffdda8ce = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_25473bc93bed2536821f0605d4b6201f = $(`<div id="html_25473bc93bed2536821f0605d4b6201f" style="width: 100.0%; height: 100.0%;">Rank #18<br>Score: 39.7<br>Station: K.R. Pura<br>Junction: No Junction<br>Violations: 1334<br>Active Days: 82</div>`)[0];
+                popup_fedc4516c85430027f221044ffdda8ce.setContent(html_25473bc93bed2536821f0605d4b6201f);
+            
+        
+
+        circle_marker_05149eaa158ab2d18085c116127bedeb.bindPopup(popup_fedc4516c85430027f221044ffdda8ce)
+        ;
+
+        
+    
+    
+            var circle_marker_f4755c36ea88845998a248d33f16cf96 = L.circleMarker(
+                [12.969848137003984, 77.57568334864565],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13.914298470768829, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_af723aa255b602069ebbd5b84b583836 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_a005c1a75b52d30fcb16aee41b524e83 = $(`<div id="html_a005c1a75b52d30fcb16aee41b524e83" style="width: 100.0%; height: 100.0%;">Rank #19<br>Score: 39.1<br>Station: City Market<br>Junction: BTP043 - Upparpet Junction<br>Violations: 837<br>Active Days: 123</div>`)[0];
+                popup_af723aa255b602069ebbd5b84b583836.setContent(html_a005c1a75b52d30fcb16aee41b524e83);
+            
+        
+
+        circle_marker_f4755c36ea88845998a248d33f16cf96.bindPopup(popup_af723aa255b602069ebbd5b84b583836)
+        ;
+
+        
+    
+    
+            var circle_marker_5eceb369e2828533adfdcf449249c949 = L.circleMarker(
+                [12.979658358224016, 77.60717278829465],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13.807780398949768, "stroke": true, "weight": 3}
+            ).addTo(map_ae9ac109e13e5320b3a804be48a4a05b);
+        
+    
+        var popup_ba44a6cbd52356a1847b5aeab2d6c36a = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_d382001e8426a88015bc878fee855fc1 = $(`<div id="html_d382001e8426a88015bc878fee855fc1" style="width: 100.0%; height: 100.0%;">Rank #20<br>Score: 38.1<br>Station: Shivajinagar<br>Junction: BTP051 - Safina Plaza Junction<br>Violations: 991<br>Active Days: 108</div>`)[0];
+                popup_ba44a6cbd52356a1847b5aeab2d6c36a.setContent(html_d382001e8426a88015bc878fee855fc1);
+            
+        
+
+        circle_marker_5eceb369e2828533adfdcf449249c949.bindPopup(popup_ba44a6cbd52356a1847b5aeab2d6c36a)
+        ;
+
+        
+    
+</script>
+</html>
