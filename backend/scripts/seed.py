@@ -16,7 +16,7 @@ from shared.models.cameras import Camera  # noqa: E402
 from shared.models.congestion_scores import CongestionScore  # noqa: E402
 from shared.models.database import Base, get_engine, get_session  # noqa: E402
 from shared.models.enforcement_log import EnforcementLog  # noqa: E402
-from shared.models.users import User  # noqa: E402
+from shared.models.users import Organization, User  # noqa: E402
 from shared.models.violations import Violation  # noqa: E402
 from shared.models.zones import Zone  # noqa: E402
 
@@ -28,6 +28,8 @@ def clear_data(db):
         "violations",
         "cameras",
         "zones",
+        "users",
+        "organizations",
         "users",
     ]:
         db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
@@ -71,11 +73,22 @@ def seed_zones(db):
     return zones_list
 
 
-def seed_users(db):
+def seed_organization(db):
+    org = Organization(
+        id=uuid.uuid4(), name="Bengaluru Traffic Police"
+    )
+    db.add(org)
+    db.commit()
+    print(f"Seeded organization: {org.name}")
+    return org
+
+
+def seed_users(db, org):
     users_data = [
         ("admin@parksight.com", "admin123", "Admin User", "admin"),
         ("operator@parksight.com", "operator123", "Operator User", "operator"),
         ("planner@parksight.com", "planner123", "Planner User", "planner"),
+        ("reviewer@parksight.com", "reviewer123", "Reviewer User", "reviewer"),
         ("officer1@parksight.com", "officer123", "Ravi Kumar", "officer"),
         ("officer2@parksight.com", "officer123", "Priya Sharma", "officer"),
         ("officer3@parksight.com", "officer123", "Anita Desai", "officer"),
@@ -86,6 +99,7 @@ def seed_users(db):
     for email, pw, name, role in users_data:
         user = User(
             id=uuid.uuid4(),
+            organization_id=org.id,
             email=email,
             hashed_password=get_password_hash(pw),
             full_name=name,
@@ -271,7 +285,8 @@ if __name__ == "__main__":
     db = get_session()
     try:
         clear_data(db)
-        users = seed_users(db)
+        org = seed_organization(db)
+        users = seed_users(db, org)
         zones = seed_zones(db)
         csv_path = os.path.join(
             os.path.dirname(

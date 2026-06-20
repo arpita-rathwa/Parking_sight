@@ -102,8 +102,16 @@ def get_scoring_engine() -> MLScoringEngine:
     return _engine
 
 
-def reload_scoring_engine() -> bool:
+def reload_scoring_engine(model_path: str | None = None) -> bool:
     global _engine
+    if model_path:
+        logger.info("Reloading scoring engine from promoted model: %s", model_path)
+        saved = MODEL_PATH
+        import shutil
+        try:
+            shutil.copy(model_path, MODEL_PATH)
+        except Exception:
+            logger.exception("Failed to copy promoted model, reloading from existing")
     _engine = MLScoringEngine()
     ok = _engine.load()
     return ok

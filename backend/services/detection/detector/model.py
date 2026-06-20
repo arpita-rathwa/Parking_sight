@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from threading import Lock, Thread
@@ -7,6 +8,8 @@ import torch
 from detector.postprocessing import DetectionPostprocessor
 from detector.preprocessing import FramePreprocessor
 from detector.types import BoundingBox, DetectionResult
+
+logger = logging.getLogger("detection.model")
 
 
 class DetectionModel:
@@ -20,6 +23,7 @@ class DetectionModel:
         device: str = "",
         watch_for_reload: bool = False,
         watch_interval: float = 10.0,
+        shadow_model_path: str | None = None,
     ):
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
@@ -28,6 +32,8 @@ class DetectionModel:
         self.half_precision = half_precision
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
+        self.shadow_model = None
+        self.shadow_model_path = shadow_model_path
         self.preprocessor = FramePreprocessor(target_size=target_size)
         self.postprocessor = DetectionPostprocessor(
             confidence_threshold=confidence_threshold,
@@ -64,6 +70,8 @@ class DetectionModel:
 
         if os.path.isfile(self.model_path):
             self._last_mtime = os.path.getmtime(self.model_path)
+        if self.shadow_model_path and os.path.isfile(self.shadow_model_path):
+            self._load_shadow()
         if self._watch_for_reload:
             self._start_watcher()
 
@@ -78,10 +86,63 @@ class DetectionModel:
     def is_loaded(self) -> bool:
         return self.model is not None
 
-    def reload(self) -> None:
-        import logging
+    def _load_shadow(self) -> None:
+        from ultralytics import YOLO
 
-        logger = logging.getLogger("detection.model")
+        try:
+            self.shadow_model = YOLO(self.shadow_model_path)
+            if self.device == "cuda":
+                self.shadow_model.to("cuda")
+                if self.half_precision:
+                    try:
+                        self.shadow_model.half()
+                    except Exception:
+                        self.shadow_model.float()
+            else:
+                self.shadow_model.to("cpu")
+            logger.info(
+                "Shadow model loaded from %s", self.shadow_model_path
+            )
+        except Exception:
+            logger.exception("Failed to load shadow model")
+            self.shadow_model = None
+
+    def _run_shadow(
+        self, tensor: torch.Tensor
+    ) -> list[list[DetectionResult]] | None:
+        if self.shadow_model is None:
+            return None
+        try:
+            raw_results = self.shadow_model(tensor, verbose=False)
+            parsed: list[list[DetectionResult]] = []
+            for i, raw in enumerate(raw_results):
+                if raw.boxes is None or len(raw.boxes) == 0:
+                    parsed.append([])
+                    continue
+                boxes = [
+                    BoundingBox(
+                        x1=float(b[0]), y1=float(b[1]),
+                        x2=float(b[2]), y2=float(b[3]),
+                        confidence=float(c), class_id=int(cls),
+                    )
+                    for b, c, cls in zip(
+                        raw.boxes.xyxy.cpu().numpy(),
+                        raw.boxes.conf.cpu().numpy(),
+                        raw.boxes.cls.cpu().numpy(),
+                    )
+                ]
+                detections = self.postprocessor.process(
+                    boxes,
+                    original_shape=(self.preprocessor.target_height, self.preprocessor.target_width),
+                    scale=1.0, pad=(0, 0),
+                )
+                parsed.append(detections)
+            return parsed
+        except Exception:
+            logger.exception("Shadow inference failed")
+            return None
+
+    def reload(self) -> None:
         logger.info("Reloading model from %s", self.model_path)
         with self._lock:
             self.model = None
@@ -180,6 +241,22 @@ class DetectionModel:
                 pad=pads[i],
             )
             parsed.append(detections)
+
+        if self.shadow_model is not None:
+            shadow_results = self._run_shadow(tensor)
+            if shadow_results is not None:
+                for i, (champ, shadow) in enumerate(zip(parsed, shadow_results)):
+                    if len(champ) != len(shadow):
+                        logger.info(
+                            "Shadow diff frame %d: champion=%d shadow=%d",
+                            i, len(champ), len(shadow),
+                        )
+                    for c, s in zip(champ, shadow):
+                        if abs(c.confidence - s.confidence) > 0.2:
+                            logger.debug(
+                                "Shadow confidence diff: champ=%.3f shadow=%.3f",
+                                c.confidence, s.confidence,
+                            )
         return parsed
 
     def predict_single(self, frame: np.ndarray) -> list[DetectionResult]:

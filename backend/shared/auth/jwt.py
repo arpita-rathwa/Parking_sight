@@ -22,7 +22,7 @@ if not settings.JWT_SECRET_KEY:
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
-ROLES = ["admin", "operator", "planner", "officer"]
+ROLES = ["admin", "operator", "planner", "officer", "reviewer"]
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

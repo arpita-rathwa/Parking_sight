@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     KAFKA_CIRCUIT_BREAKER_COOLDOWN: float = 30.0
     FRAME_MAX_AGE_SECONDS: float = 10.0
     ENABLE_MODEL_HOT_RELOAD: bool = False
+    SHADOW_MODEL_PATH: str = ""
+    ENABLE_SHADOW_MODE: bool = False
     MODEL_WATCH_INTERVAL: float = 10.0
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 5

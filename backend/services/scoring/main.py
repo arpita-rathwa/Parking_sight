@@ -67,7 +67,8 @@ def start_model_promoted_consumer():
                 logger.info(
                     "Model promoted event received: %s", msg.value.get("model_version")
                 )
-                ok = reload_scoring_engine()
+                weights_uri = msg.value.get("weights_uri")
+                ok = reload_scoring_engine(model_path=weights_uri)
                 logger.info("Scoring engine reloaded: %s", ok)
         except Exception:
             logger.exception("Model promoted consumer error")

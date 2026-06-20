@@ -86,6 +86,7 @@ def on_startup():
         half_precision=settings.ENABLE_HALF_PRECISION,
         watch_for_reload=settings.ENABLE_MODEL_HOT_RELOAD,
         watch_interval=settings.MODEL_WATCH_INTERVAL,
+        shadow_model_path=settings.SHADOW_MODEL_PATH if settings.ENABLE_SHADOW_MODE else None,
     )
     model.load()
     pipeline = BatchInferencePipeline(model=model, interval=settings.BATCH_INTERVAL)
