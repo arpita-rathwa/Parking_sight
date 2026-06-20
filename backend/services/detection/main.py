@@ -1,16 +1,21 @@
 import asyncio
 import logging
+import time
 import uuid
-from datetime import datetime, timezone
+from collections import deque
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from threading import Lock, Thread
 
 import cv2
 import numpy as np
 from detector.geometry import filter_detections_by_roi, point_in_polygon
 from detector.model import DetectionModel
 from detector.types import CameraConfig, DetectionResult, VehicleType
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 from pipeline.batcher import BatchInferencePipeline
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -24,7 +29,7 @@ from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.cameras import Camera
-from shared.models.database import get_db
+from shared.models.database import get_db, get_session
 from shared.models.violations import Violation
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
@@ -48,6 +53,25 @@ stream_manager: StreamManager = StreamManager()
 pipeline: BatchInferencePipeline | None = None
 _executor: asyncio.AbstractEventLoop | None = None
 
+_violation_buffer: deque[dict] = deque(maxlen=10000)
+_buffer_lock = Lock()
+_last_flush_attempt = datetime.min.replace(tzinfo=timezone.utc)
+
+DETECTION_LATENCY = Histogram(
+    "detection_inference_seconds",
+    "Model inference latency in seconds",
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+)
+DETECTION_TOTAL = Counter("detection_total", "Total detections processed")
+DETECTION_FAILURES = Counter(
+    "detection_failures_total", "Total detection failures", labelnames=["reason"]
+)
+DETECTION_BUFFER_SIZE = Gauge(
+    "detection_buffer_size", "Current violation buffer size"
+)
+MODEL_HEALTH = Gauge("detection_model_health", "Model health (1=loaded, 0=unloaded)")
+ACTIVE_STREAMS = Gauge("detection_active_streams", "Number of active camera streams")
+
 
 @app.on_event("startup")
 def on_startup():
@@ -59,11 +83,29 @@ def on_startup():
         confidence_threshold=settings.DETECTION_CONFIDENCE_THRESHOLD,
         target_size=(settings.MODEL_INPUT_SIZE, settings.MODEL_INPUT_SIZE),
         half_precision=settings.ENABLE_HALF_PRECISION,
+        watch_for_reload=settings.ENABLE_MODEL_HOT_RELOAD,
+        watch_interval=settings.MODEL_WATCH_INTERVAL,
     )
     model.load()
     pipeline = BatchInferencePipeline(model=model, interval=settings.BATCH_INTERVAL)
     if settings.STREAM_CACHE_DIR:
         Path(settings.STREAM_CACHE_DIR).mkdir(parents=True, exist_ok=True)
+    _start_buffer_flush_thread()
+
+
+def _buffer_flush_loop() -> None:
+    while True:
+        try:
+            _flush_violation_buffer()
+        except Exception:
+            logger.exception("Buffer flush error")
+        import time
+        time.sleep(30)
+
+
+def _start_buffer_flush_thread() -> None:
+    thread = Thread(target=_buffer_flush_loop, name="buffer-flush", daemon=True)
+    thread.start()
 
 
 @app.on_event("shutdown")
@@ -102,6 +144,44 @@ def _decode_image(file: UploadFile) -> np.ndarray:
     return frame
 
 
+def _flush_violation_buffer() -> None:
+    global _last_flush_attempt
+    if not _violation_buffer:
+        return
+    now = datetime.now(timezone.utc)
+    if now - _last_flush_attempt < timedelta(seconds=10):
+        return
+    _last_flush_attempt = now
+    db = get_session()
+    try:
+        while _violation_buffer:
+            entry = _violation_buffer[0]
+            violation = Violation(
+                id=entry["id"],
+                camera_id=entry["camera_id"],
+                timestamp=entry["timestamp"],
+                coordinates=entry["coordinates"],
+                confidence_score=entry["confidence"],
+                vehicle_type=entry["vehicle_type"],
+                violation_type=entry["violation_type"],
+            )
+            db.add(violation)
+            db.commit()
+            with _buffer_lock:
+                _violation_buffer.popleft()
+            logger.info(
+                "Flushed buffered violation %s", entry["id"]
+            )
+    except Exception:
+        db.rollback()
+        logger.warning(
+            "DB still unavailable — %d violations remain buffered",
+            len(_violation_buffer),
+        )
+    finally:
+        db.close()
+
+
 def _publish_detection(
     camera_id: str,
     vehicle_type: VehicleType,
@@ -117,14 +197,10 @@ def _publish_detection(
 
     close_session = False
     if db is None:
-        from shared.models.database import get_session
-
         db = get_session()
         close_session = True
 
     try:
-        from shared.models.cameras import Camera
-
         camera = db.query(Camera).filter(Camera.id == camera_id).first()
         if camera:
             zone_id = str(camera.zone_id)
@@ -140,7 +216,21 @@ def _publish_detection(
         db.add(violation)
         db.commit()
     except Exception:
-        logger.exception("Failed to persist violation")
+        db.rollback()
+        logger.exception("DB unavailable — buffering violation")
+        with _buffer_lock:
+            _violation_buffer.append(
+                {
+                    "id": violation_id,
+                    "camera_id": uuid.UUID(camera_id) if camera_id else uuid.uuid4(),
+                    "timestamp": now,
+                    "coordinates": f"SRID=4326;POINT({longitude} {latitude})",
+                    "confidence": confidence,
+                    "vehicle_type": vehicle_type.value,
+                    "violation_type": violation_type,
+                    "zone_id": zone_id,
+                }
+            )
         raise
     finally:
         if close_session:
@@ -184,7 +274,9 @@ async def detect_violation(
 
     frame = _decode_image(file)
     loop = asyncio.get_event_loop()
+    inference_start = time.time()
     detections = await loop.run_in_executor(None, model.predict_single, frame)
+    DETECTION_LATENCY.observe(time.time() - inference_start)
 
     camera = db.query(Camera).filter(Camera.id == camera_id).first()
     roi = camera.roi_polygon if camera else None
@@ -199,6 +291,8 @@ async def detect_violation(
             pass
 
     if not detections:
+        MODEL_HEALTH.set(1.0 if model.is_loaded() else 0.0)
+        ACTIVE_STREAMS.set(stream_manager.camera_count)
         return {
             "detections": [],
             "message": "No vehicles detected",
@@ -217,7 +311,9 @@ async def detect_violation(
             )
         except Exception:
             logger.exception("Failed to publish detection")
+            DETECTION_FAILURES.labels(reason="db_unavailable").inc()
             raise HTTPException(status_code=503, detail="Database unavailable")
+        DETECTION_TOTAL.inc()
         results.append(
             DetectionResponse(
                 id=vid,
@@ -230,7 +326,11 @@ async def detect_violation(
                 violation_type="detected",
             )
         )
+        _flush_violation_buffer()
+        DETECTION_BUFFER_SIZE.set(len(_violation_buffer))
 
+    MODEL_HEALTH.set(1.0 if model.is_loaded() else 0.0)
+    ACTIVE_STREAMS.set(stream_manager.camera_count)
     return {"detections": results, "count": len(results)}
 
 
@@ -321,6 +421,14 @@ async def list_streams(
         "count": stream_manager.camera_count,
         "streams": stream_manager.get_all_stats(),
     }
+
+
+@app.get(f"{settings.API_V1_PREFIX}/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type="text/plain; charset=utf-8",
+    )
 
 
 @app.get(f"{settings.API_V1_PREFIX}/health")

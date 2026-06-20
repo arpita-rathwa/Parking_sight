@@ -4,6 +4,8 @@ import numpy as np
 from detector.types import CameraConfig
 from stream.camera import CameraStream
 
+from shared.config.settings import settings
+
 FrameCallback = Callable[[str, object], None]
 
 
@@ -30,6 +32,7 @@ class StreamManager:
             camera_id=config.camera_id,
             rtsp_url=config.rtsp_url,
             frame_interval=config.frame_interval,
+            frame_max_age=settings.FRAME_MAX_AGE_SECONDS,
         )
         self._cameras[config.camera_id] = stream
         self._configs[config.camera_id] = config

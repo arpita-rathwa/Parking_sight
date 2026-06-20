@@ -13,18 +13,21 @@ class CameraStream:
         frame_interval: float = 5.0,
         reconnect_delay: float = 1.0,
         max_reconnect_delay: float = 60.0,
+        frame_max_age: float = 10.0,
     ):
         self.camera_id = camera_id
         self.rtsp_url = rtsp_url
         self.frame_interval = frame_interval
         self.reconnect_delay = reconnect_delay
         self.max_reconnect_delay = max_reconnect_delay
+        self.frame_max_age = frame_max_age
 
         self._cap: cv2.VideoCapture | None = None
         self._thread: Thread | None = None
         self._stop_event = Event()
         self._lock = Lock()
         self._latest_frame: np.ndarray | None = None
+        self._latest_frame_time: float = 0.0
         self._frame_count = 0
         self._reconnect_attempts = 0
         self._connected = False
@@ -42,7 +45,12 @@ class CameraStream:
     @property
     def latest_frame(self) -> np.ndarray | None:
         with self._lock:
-            return self._latest_frame.copy() if self._latest_frame is not None else None
+            if self._latest_frame is None:
+                return None
+            if time.time() - self._latest_frame_time > self.frame_max_age:
+                self._latest_frame = None
+                return None
+            return self._latest_frame.copy()
 
     @property
     def frame_count(self) -> int:
@@ -98,6 +106,7 @@ class CameraStream:
 
             with self._lock:
                 self._latest_frame = frame
+                self._latest_frame_time = time.time()
             self._frame_count += 1
             self._last_grab_time = now
 

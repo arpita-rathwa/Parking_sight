@@ -1,4 +1,6 @@
-from threading import Lock
+import os
+import time
+from threading import Lock, Thread
 
 import numpy as np
 import torch
@@ -16,6 +18,8 @@ class DetectionModel:
         target_size: tuple[int, int] = (1280, 720),
         half_precision: bool = True,
         device: str = "",
+        watch_for_reload: bool = False,
+        watch_interval: float = 10.0,
     ):
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
@@ -31,6 +35,10 @@ class DetectionModel:
         )
         self._stream: torch.cuda.Stream | None = None
         self._lock = Lock()
+        self._watch_for_reload = watch_for_reload
+        self._watch_interval = watch_interval
+        self._watcher_thread: Thread | None = None
+        self._last_mtime: float = 0.0
 
     @property
     def stream(self) -> torch.cuda.Stream | None:
@@ -54,6 +62,11 @@ class DetectionModel:
             self.model.to("cpu")
             self.model.float()
 
+        if os.path.isfile(self.model_path):
+            self._last_mtime = os.path.getmtime(self.model_path)
+        if self._watch_for_reload:
+            self._start_watcher()
+
     def _warmup(self) -> None:
         dummy = np.zeros(
             (self.preprocessor.target_height, self.preprocessor.target_width, 3),
@@ -64,6 +77,56 @@ class DetectionModel:
 
     def is_loaded(self) -> bool:
         return self.model is not None
+
+    def reload(self) -> None:
+        import logging
+
+        logger = logging.getLogger("detection.model")
+        logger.info("Reloading model from %s", self.model_path)
+        with self._lock:
+            self.model = None
+            from ultralytics import YOLO
+
+            self.model = YOLO(self.model_path)
+            if self.device == "cuda":
+                self.model.to("cuda")
+                if self.half_precision:
+                    try:
+                        self.model.half()
+                    except Exception:
+                        self.model.float()
+            else:
+                self.model.to("cpu")
+                self.model.float()
+            if os.path.isfile(self.model_path):
+                self._last_mtime = os.path.getmtime(self.model_path)
+            logger.info("Model reloaded successfully")
+
+    def _watcher_loop(self) -> None:
+        import logging
+
+        logger = logging.getLogger("detection.model.watcher")
+        while True:
+            time.sleep(self._watch_interval)
+            try:
+                if not os.path.isfile(self.model_path):
+                    continue
+                current_mtime = os.path.getmtime(self.model_path)
+                if current_mtime > self._last_mtime:
+                    logger.info(
+                        "Model file changed (%s), reloading...", self.model_path
+                    )
+                    self.reload()
+            except Exception:
+                logger.exception("Model watcher error")
+
+    def _start_watcher(self) -> None:
+        self._watcher_thread = Thread(
+            target=self._watcher_loop,
+            name="model-watcher",
+            daemon=True,
+        )
+        self._watcher_thread.start()
 
     def predict(self, frames: list[np.ndarray]) -> list[list[DetectionResult]]:
         if not self.is_loaded():

@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     STREAM_CACHE_DIR: str = "/tmp/parksight-frames"
     BATCH_INTERVAL: float = 2.0
 
+    KAFKA_CIRCUIT_BREAKER_THRESHOLD: int = 5
+    KAFKA_CIRCUIT_BREAKER_COOLDOWN: float = 30.0
+    FRAME_MAX_AGE_SECONDS: float = 10.0
+    ENABLE_MODEL_HOT_RELOAD: bool = False
+    MODEL_WATCH_INTERVAL: float = 10.0
+
 
 @lru_cache()
 def get_settings() -> Settings:

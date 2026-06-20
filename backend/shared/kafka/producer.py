@@ -4,6 +4,12 @@ from typing import Any, Optional
 from kafka import KafkaProducer
 
 from shared.config.settings import settings
+from shared.kafka.circuit_breaker import CircuitBreaker
+
+circuit_breaker = CircuitBreaker(
+    failure_threshold=settings.KAFKA_CIRCUIT_BREAKER_THRESHOLD,
+    cooldown_seconds=settings.KAFKA_CIRCUIT_BREAKER_COOLDOWN,
+)
 
 
 class ParkSightProducer:
@@ -22,13 +28,24 @@ class ParkSightProducer:
         )
 
     def send(self, topic: str, key: Optional[str], value: dict[str, Any]) -> bool:
+        if not circuit_breaker.try_request():
+            return False
         try:
             self._ensure_connected()
             self._producer.send(topic, key=key, value=value)
             self._producer.flush()
+            circuit_breaker.on_success()
             return True
         except Exception:
+            circuit_breaker.on_failure()
             return False
+
+    def flush(self) -> None:
+        if self._producer is not None:
+            try:
+                self._producer.flush()
+            except Exception:
+                pass
 
     def close(self) -> None:
         if self._producer is not None:
