@@ -1,0 +1,12 @@
+# Training image — deploy on the g4dn.xlarge / SageMaker for the weekly retrain.
+FROM python:3.11-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 libgl1 && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir -e ".[train]"
+COPY common ./common
+COPY training ./training
+COPY scripts ./scripts
+ENTRYPOINT ["python", "-m", "training.pipeline"]
+CMD ["--trigger", "schedule"]

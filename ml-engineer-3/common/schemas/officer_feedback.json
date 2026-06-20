@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "officer.feedback",
+  "description": "Emitted when an officer marks a violation unresolvable and attaches photo evidence. Produced by officer-app-api (Backend) in production; consumed by the ML feedback loop. Schema owned by ML Engineer 3.",
+  "type": "object",
+  "required": ["event", "schema_version", "feedback_id", "violation_id", "officer_id", "status"],
+  "properties": {
+    "event": {"const": "officer.feedback"},
+    "schema_version": {"type": "integer", "const": 1},
+    "feedback_id": {"type": "string"},
+    "violation_id": {"type": "string"},
+    "camera_id": {"type": ["string", "null"]},
+    "zone_id": {"type": ["string", "null"]},
+    "officer_id": {"type": "string"},
+    "status": {"enum": ["resolved", "unresolvable"]},
+    "reason": {"type": ["string", "null"]},
+    "proposed_class": {"type": ["string", "null"]},
+    "photo_s3_key": {"type": ["string", "null"]},
+    "crop_s3_key": {"type": ["string", "null"]},
+    "timestamp": {"type": "string", "format": "date-time"}
+  },
+  "example": {
+    "event": "officer.feedback",
+    "schema_version": 1,
+    "feedback_id": "f3a9c1e2b4d5",
+    "violation_id": "v_88213",
+    "camera_id": "cam_042",
+    "zone_id": "zone_17",
+    "officer_id": "off_009",
+    "status": "unresolvable",
+    "reason": "vehicle departed before officer arrival; misclassified as car, was a tempo/van",
+    "proposed_class": "van",
+    "photo_s3_key": "evidence/2026/06/19/f3a9c1e2b4d5.jpg",
+    "crop_s3_key": "frames/2026-06-19/cam_042/frm_9921_crop.jpg",
+    "timestamp": "2026-06-19T11:04:00Z"
+  }
+}

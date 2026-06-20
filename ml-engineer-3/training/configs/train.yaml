@@ -1,0 +1,8 @@
+# YOLOv8 training config (overridable by env in common/config.py).
+# Hackathon demo defaults to a fast nano run; bump for production on g4dn.
+base_model: yolov8n.pt
+epochs: 30          # demo: 30 | production weekly: 100+
+img_size: 640
+batch: 16
+device: "0"         # "0" = g4dn GPU | "cpu" = laptop demo
+train_val_split: 0.2

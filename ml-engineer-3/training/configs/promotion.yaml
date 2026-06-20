@@ -1,0 +1,4 @@
+# Champion/challenger promotion gate thresholds.
+promotion_min_map50: 0.50            # absolute quality floor
+promotion_min_delta: 0.005           # candidate must beat champion by this
+promotion_per_class_tolerance: 0.10  # max tolerated per-class mAP50 regression

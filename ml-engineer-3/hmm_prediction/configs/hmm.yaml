@@ -1,0 +1,7 @@
+# HMM pre-staging config (overridable via env in common/config.py).
+n_states: 4              # calm / building / congested / critical
+window: 16               # recent 30-min bins used for the forward pass (~8h)
+min_history: 8           # below this, fall back to a heuristic (cold start)
+bin_minutes: 30          # forecast horizon: one bin ahead
+n_iter: 200              # EM iterations
+random_state: 42
