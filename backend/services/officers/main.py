@@ -12,7 +12,7 @@ from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
-from shared.models.database import Base, get_db, get_engine
+from shared.models.database import get_db
 from shared.models.enforcement_log import EnforcementLog
 from shared.models.users import User
 from shared.models.zones import Zone
