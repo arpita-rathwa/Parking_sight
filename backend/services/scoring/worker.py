@@ -5,10 +5,10 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from services.scoring.ml_model.engine import get_scoring_engine
 from shared.kafka.consumer import create_consumer
 from shared.kafka.producer import producer
 from shared.kafka.topics import KAFKA_TOPICS
-from services.scoring.ml_model.engine import get_scoring_engine
 
 logger = logging.getLogger("scoring-worker")
 
@@ -27,8 +27,12 @@ class ScoringWorker:
 
     def start(self):
         self._running = True
-        threading.Thread(target=self._consume_loop, daemon=True, name="scoring-consume").start()
-        threading.Thread(target=self._compute_loop, daemon=True, name="scoring-compute").start()
+        threading.Thread(
+            target=self._consume_loop, daemon=True, name="scoring-consume"
+        ).start()
+        threading.Thread(
+            target=self._compute_loop, daemon=True, name="scoring-compute"
+        ).start()
         logger.info("Scoring worker started")
 
     def stop(self):
@@ -38,8 +42,9 @@ class ScoringWorker:
         now = time.time()
         if now - self._last_cache_refresh < CAMERA_CACHE_TTL:
             return
-        from shared.models.database import get_session
         from shared.models.cameras import Camera
+        from shared.models.database import get_session
+
         db = get_session()
         try:
             cameras = db.query(Camera).all()
@@ -102,8 +107,8 @@ class ScoringWorker:
         max_count = max(len(c) for c in zone_counts.values()) or 1
         now = datetime.now(timezone.utc)
         engine = get_scoring_engine()
-        from shared.models.database import get_session
         from shared.models.congestion_scores import CongestionScore
+        from shared.models.database import get_session
 
         db = get_session()
         try:
@@ -145,7 +150,9 @@ class ScoringWorker:
                 producer.send(KAFKA_TOPICS["zones_scored"], key=zone_id, value=event)
 
             db.commit()
-            logger.info("Scored %d zones (%d violations)", len(zone_counts), len(recent))
+            logger.info(
+                "Scored %d zones (%d violations)", len(zone_counts), len(recent)
+            )
         except Exception:
             db.rollback()
             logger.exception("Failed to persist congestion scores")
@@ -173,11 +180,14 @@ class ScoringWorker:
             return zone_id
         return None
 
-    def _batch_resolve_zones(self, violations: list[dict], zone_counts: dict[str, list[float]]):
+    def _batch_resolve_zones(
+        self, violations: list[dict], zone_counts: dict[str, list[float]]
+    ):
+        from geoalchemy2 import WKTElement
+        from geoalchemy2.functions import ST_Within
+
         from shared.models.database import get_session
         from shared.models.zones import Zone
-        from geoalchemy2.functions import ST_Within
-        from geoalchemy2 import WKTElement
 
         db = get_session()
         try:
@@ -194,7 +204,9 @@ class ScoringWorker:
                         zone_counts[zid].append(v.get("confidence", 0.5))
                         break
         except Exception:
-            logger.warning("Batch zone resolution failed for %d violations", len(violations))
+            logger.warning(
+                "Batch zone resolution failed for %d violations", len(violations)
+            )
         finally:
             db.close()
 

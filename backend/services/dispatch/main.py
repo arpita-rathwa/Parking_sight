@@ -129,9 +129,7 @@ async def get_dispatch_overview(
             log_map[oid] = log
 
     officers_data = (
-        db.query(User)
-        .filter(User.role == "officer", User.is_active.is_(True))
-        .all()
+        db.query(User).filter(User.role == "officer", User.is_active.is_(True)).all()
     )
 
     officers = []
@@ -150,24 +148,33 @@ async def get_dispatch_overview(
                 status = "On Scene"
                 color = "orange"
                 stat_label = "Response"
-                diff = (datetime.now(timezone.utc) - log.dispatched_at).total_seconds() / 60
+                diff = (
+                    datetime.now(timezone.utc) - log.dispatched_at
+                ).total_seconds() / 60
                 stat_val = f"{diff:.1f} min"
             elif log.dispatched_at is not None:
                 status = "En Route"
                 color = "blue"
                 stat_label = "ETA"
-                remaining = max(0, 10 - (datetime.now(timezone.utc) - log.dispatched_at).total_seconds() / 60)
+                remaining = max(
+                    0,
+                    10
+                    - (datetime.now(timezone.utc) - log.dispatched_at).total_seconds()
+                    / 60,
+                )
                 stat_val = f"{remaining:.0f} min"
 
-        officers.append({
-            "id": uid,
-            "name": u.full_name,
-            "status": status,
-            "zone": zone_name,
-            "statLabel": stat_label,
-            "statVal": stat_val,
-            "color": color,
-        })
+        officers.append(
+            {
+                "id": uid,
+                "name": u.full_name,
+                "status": status,
+                "zone": zone_name,
+                "statLabel": stat_label,
+                "statVal": stat_val,
+                "color": color,
+            }
+        )
 
     active_logs_list = list(active_logs)[:20]
     assignments = []
@@ -187,20 +194,26 @@ async def get_dispatch_overview(
             color = "orange"
             eta = "On Scene"
         elif log.dispatched_at is not None:
-            remaining = max(0, 10 - (datetime.now(timezone.utc) - log.dispatched_at).total_seconds() / 60)
+            remaining = max(
+                0,
+                10
+                - (datetime.now(timezone.utc) - log.dispatched_at).total_seconds() / 60,
+            )
             eta = f"{remaining:.0f} min"
         ps = zone.priority_score if zone and zone.priority_score else 50
         priority = "CRITICAL" if ps > 80 else "HIGH" if ps > 60 else "MEDIUM"
 
-        assignments.append({
-            "officer": officer_name,
-            "zone": zone_name_a,
-            "violation": "—",
-            "priority": priority,
-            "eta": eta,
-            "status": status,
-            "color": color,
-        })
+        assignments.append(
+            {
+                "officer": officer_name,
+                "zone": zone_name_a,
+                "violation": "—",
+                "priority": priority,
+                "eta": eta,
+                "status": status,
+                "color": color,
+            }
+        )
 
     recent_logs = (
         db.query(EnforcementLog)
@@ -224,11 +237,13 @@ async def get_dispatch_overview(
             action = "reached"
         else:
             action = "dispatched to"
-        timeline.append({
-            "time": log.dispatched_at.strftime("%I:%M %p").lstrip("0"),
-            "text": f"Officer {officer_name} {action} {zone_name_t}",
-            "icon": "dispatch",
-        })
+        timeline.append(
+            {
+                "time": log.dispatched_at.strftime("%I:%M %p").lstrip("0"),
+                "text": f"Officer {officer_name} {action} {zone_name_t}",
+                "icon": "dispatch",
+            }
+        )
 
     return {
         "officers": officers,

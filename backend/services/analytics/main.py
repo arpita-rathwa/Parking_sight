@@ -24,13 +24,14 @@ from shared.redis.client import redis_client
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
 
-
 _hmm_predictions: list[dict] = []
 _hmm_predictions_lock = threading.Lock()
 
 
 def _consume_hotspot_predictions():
-    consumer = create_consumer(KAFKA_TOPICS["hotspot_predictions"], "analytics-hmm-group")
+    consumer = create_consumer(
+        KAFKA_TOPICS["hotspot_predictions"], "analytics-hmm-group"
+    )
     try:
         for msg in consumer:
             with _hmm_predictions_lock:
@@ -59,7 +60,9 @@ app.include_router(auth_router)
 def on_startup():
     run_migrations()
     init_sentry(settings.SERVICE_NAME)
-    threading.Thread(target=_consume_hotspot_predictions, daemon=True, name="hmm-consumer").start()
+    threading.Thread(
+        target=_consume_hotspot_predictions, daemon=True, name="hmm-consumer"
+    ).start()
 
 
 @app.on_event("startup")
@@ -244,12 +247,14 @@ async def get_analytics_summary(
     )
 
     resolved = (
-        db.query(func.count(Violation.id))
-        .filter(Violation.resolved.is_(True))
-        .scalar()
+        db.query(func.count(Violation.id)).filter(Violation.resolved.is_(True)).scalar()
         or 0
     )
-    resolution_rate = round(resolved / (resolved + open_cases) * 100, 1) if (resolved + open_cases) > 0 else 0
+    resolution_rate = (
+        round(resolved / (resolved + open_cases) * 100, 1)
+        if (resolved + open_cases) > 0
+        else 0
+    )
 
     recent_scores = (
         db.query(func.avg(CongestionScore.impact_score))
@@ -260,7 +265,10 @@ async def get_analytics_summary(
 
     officers_active = (
         db.query(func.count(func.distinct(EnforcementLog.officer_id)))
-        .filter(EnforcementLog.dispatched_at >= cutoff_24h, EnforcementLog.resolved_at.is_(None))
+        .filter(
+            EnforcementLog.dispatched_at >= cutoff_24h,
+            EnforcementLog.resolved_at.is_(None),
+        )
         .scalar()
         or 0
     )
@@ -335,10 +343,20 @@ async def get_congestion_heat(
     slots = [
         {"time": "6am", "morning": morning_6, "afternoon": 0, "evening": 0},
         {"time": "8am", "morning": h8, "afternoon": afternoon_8_12, "evening": 0},
-        {"time": "10am", "morning": (h10 or 0) * 0.7, "afternoon": afternoon_10_12, "evening": 0},
+        {
+            "time": "10am",
+            "morning": (h10 or 0) * 0.7,
+            "afternoon": afternoon_10_12,
+            "evening": 0,
+        },
         {"time": "12pm", "morning": 0, "afternoon": h12 or h11 or 50, "evening": 0},
         {"time": "2pm", "morning": 0, "afternoon": h14 or h13 or 60, "evening": 0},
-        {"time": "4pm", "morning": 0, "afternoon": h16 or (h15 or h14), "evening": evening_4},
+        {
+            "time": "4pm",
+            "morning": 0,
+            "afternoon": h16 or (h15 or h14),
+            "evening": evening_4,
+        },
         {"time": "6pm", "morning": 0, "afternoon": 0, "evening": h18 or h19 or 70},
         {"time": "8pm", "morning": 0, "afternoon": 0, "evening": h20 or h21 or 40},
     ]
@@ -362,7 +380,15 @@ async def get_violation_types(
     )
 
     total = sum(r.count for r in results) or 1
-    colors = ["#3B82F6", "#8B5CF6", "#EF4444", "#F59E0B", "#10B981", "#EC4899", "#14B8A6"]
+    colors = [
+        "#3B82F6",
+        "#8B5CF6",
+        "#EF4444",
+        "#F59E0B",
+        "#10B981",
+        "#EC4899",
+        "#14B8A6",
+    ]
 
     return [
         {
@@ -416,20 +442,22 @@ async def get_analytics_insights(
             insights.append(f"{name} congestion is under control.")
 
     recent_scores = (
-        db.query(
-            func.avg(CongestionScore.impact_score)
-        )
+        db.query(func.avg(CongestionScore.impact_score))
         .filter(CongestionScore.timestamp >= cutoff_24h)
         .scalar()
     )
     if recent_scores:
-        insights.append(f"Peak traffic occurs during evening hours with congestion at {round(float(recent_scores))}.")
+        insights.append(
+            f"Peak traffic occurs during evening hours with congestion at {round(float(recent_scores))}."
+        )
 
     top_zone = zone_scores[0] if zone_scores else None
     if top_zone:
         zone = zone_map.get(str(top_zone.zone_id))
         if zone:
-            insights.insert(0, f"{zone.name} has the highest violation frequency this week.")
+            insights.insert(
+                0, f"{zone.name} has the highest violation frequency this week."
+            )
 
     resolved_count = (
         db.query(func.count(EnforcementLog.id))
@@ -440,7 +468,9 @@ async def get_analytics_insights(
         .scalar()
         or 0
     )
-    insights.append(f"Average officer response improved by {min(resolved_count * 3, 95)}%.")
+    insights.append(
+        f"Average officer response improved by {min(resolved_count * 3, 95)}%."
+    )
 
     return insights[:5]
 
@@ -472,7 +502,9 @@ async def get_analytics_radar(
             "zones": [],
         }
 
-    zones = db.query(Zone).filter(Zone.id.in_(zone_ids_list)).all() if zone_ids_list else []
+    zones = (
+        db.query(Zone).filter(Zone.id.in_(zone_ids_list)).all() if zone_ids_list else []
+    )
     zone_labels = {str(z.id): z.name for z in zones}
 
     results = []
@@ -495,22 +527,36 @@ async def get_analytics_radar(
         if not scores or scores.avg_impact is None:
             continue
 
-        max_vals = {"violations": 100, "speed": 100, "density": 100, "weather": 2.0, "impact": 100}
+        max_vals = {
+            "violations": 100,
+            "speed": 100,
+            "density": 100,
+            "weather": 2.0,
+            "impact": 100,
+        }
 
         def _factor(val, max_v, default):
             return round(min(float(val) / max_v * 100, 100)) if val else default
 
-        results.append({
-            "zone_id": str(zid),
-            "zone_name": zone_labels.get(str(zid), "Unknown"),
-            "factors": {
-                "Violations": _factor(scores.avg_violations, max_vals["violations"], 50),
-                "Speed": _factor(scores.avg_speed_drop, max_vals["speed"], 50),
-                "Rush Hour": _factor(scores.avg_density, max_vals["density"], 50),
-                "History": round(min(float(scores.avg_impact), 100)) if scores.avg_impact else 50,
-                "Weather": _factor(scores.avg_weather, max_vals["weather"], 30),
-            },
-        })
+        results.append(
+            {
+                "zone_id": str(zid),
+                "zone_name": zone_labels.get(str(zid), "Unknown"),
+                "factors": {
+                    "Violations": _factor(
+                        scores.avg_violations, max_vals["violations"], 50
+                    ),
+                    "Speed": _factor(scores.avg_speed_drop, max_vals["speed"], 50),
+                    "Rush Hour": _factor(scores.avg_density, max_vals["density"], 50),
+                    "History": (
+                        round(min(float(scores.avg_impact), 100))
+                        if scores.avg_impact
+                        else 50
+                    ),
+                    "Weather": _factor(scores.avg_weather, max_vals["weather"], 30),
+                },
+            }
+        )
 
     return {
         "factors": ["Violations", "Speed", "Rush Hour", "History", "Weather"],
@@ -537,16 +583,32 @@ async def get_factor_weights(
 
     if scores and scores.avg_impact and scores.avg_impact > 0:
         total = (
-            (scores.avg_violations or 0) * 0.35 +
-            (scores.avg_speed_drop or 0) * 0.25 +
-            (scores.avg_density or 0) * 0.15 +
-            (scores.avg_impact or 0) * 0.15
+            (scores.avg_violations or 0) * 0.35
+            + (scores.avg_speed_drop or 0) * 0.25
+            + (scores.avg_density or 0) * 0.15
+            + (scores.avg_impact or 0) * 0.15
         )
         weights = {
-            "Violation Count": round((scores.avg_violations or 0) * 0.35 / total * 100) if total > 0 else 35,
-            "Traffic Speed Reduction": round((scores.avg_speed_drop or 0) * 0.25 / total * 100) if total > 0 else 25,
-            "Rush Hour Factor": round((scores.avg_density or 0) * 0.15 / total * 100) if total > 0 else 15,
-            "Historical Pattern": round((scores.avg_impact or 0) * 0.15 / total * 100) if total > 0 else 15,
+            "Violation Count": (
+                round((scores.avg_violations or 0) * 0.35 / total * 100)
+                if total > 0
+                else 35
+            ),
+            "Traffic Speed Reduction": (
+                round((scores.avg_speed_drop or 0) * 0.25 / total * 100)
+                if total > 0
+                else 25
+            ),
+            "Rush Hour Factor": (
+                round((scores.avg_density or 0) * 0.15 / total * 100)
+                if total > 0
+                else 15
+            ),
+            "Historical Pattern": (
+                round((scores.avg_impact or 0) * 0.15 / total * 100)
+                if total > 0
+                else 15
+            ),
             "Weather Impact": 10,
         }
     else:
@@ -576,7 +638,9 @@ async def get_predicted_hotspots(
                     "state": p.get("predicted_state_name", p.get("state", "unknown")),
                     "hotspot_probability": p.get("hotspot_probability", 0),
                 }
-                for p in sorted(_hmm_predictions, key=lambda x: x.get("risk_score", 0), reverse=True)[:5]
+                for p in sorted(
+                    _hmm_predictions, key=lambda x: x.get("risk_score", 0), reverse=True
+                )[:5]
             ]
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=3)

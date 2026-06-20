@@ -5,24 +5,31 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 
-sys.path.insert(                                                      # noqa: E402
+sys.path.insert(  # noqa: E402
     0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 
-from sqlalchemy import text                                           # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
-from shared.auth.jwt import get_password_hash                         # noqa: E402
-from shared.models.cameras import Camera                               # noqa: E402
-from shared.models.congestion_scores import CongestionScore             # noqa: E402
-from shared.models.database import Base, get_engine, get_session        # noqa: E402
-from shared.models.enforcement_log import EnforcementLog                # noqa: E402
-from shared.models.users import User                                   # noqa: E402
-from shared.models.violations import Violation                          # noqa: E402
-from shared.models.zones import Zone                                    # noqa: E402
+from shared.auth.jwt import get_password_hash  # noqa: E402
+from shared.models.cameras import Camera  # noqa: E402
+from shared.models.congestion_scores import CongestionScore  # noqa: E402
+from shared.models.database import Base, get_engine, get_session  # noqa: E402
+from shared.models.enforcement_log import EnforcementLog  # noqa: E402
+from shared.models.users import User  # noqa: E402
+from shared.models.violations import Violation  # noqa: E402
+from shared.models.zones import Zone  # noqa: E402
 
 
 def clear_data(db):
-    for table in ["enforcement_log", "congestion_scores", "violations", "cameras", "zones", "users"]:
+    for table in [
+        "enforcement_log",
+        "congestion_scores",
+        "violations",
+        "cameras",
+        "zones",
+        "users",
+    ]:
         db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
     db.commit()
     print("Cleared existing data")
@@ -173,10 +180,19 @@ def seed_congestion_scores(db, zones, hours=72):
             ts = now - timedelta(hours=h)
             hour_factor = 1.0 + 0.5 * abs(12 - ts.hour) / 12
             weekday_factor = 1.3 if ts.weekday() < 5 else 0.7
-            viol = int(base_violations * hour_factor * weekday_factor * random.uniform(0.7, 1.3))
-            density = base_density * hour_factor * weekday_factor * random.uniform(0.8, 1.2)
+            viol = int(
+                base_violations
+                * hour_factor
+                * weekday_factor
+                * random.uniform(0.7, 1.3)
+            )
+            density = (
+                base_density * hour_factor * weekday_factor * random.uniform(0.8, 1.2)
+            )
             speed_drop = random.uniform(5, 40) * hour_factor
-            impact = (viol * 0.35 + speed_drop * 0.25 + density * 0.15) * random.uniform(0.8, 1.2)
+            impact = (
+                viol * 0.35 + speed_drop * 0.25 + density * 0.15
+            ) * random.uniform(0.8, 1.2)
             weather = random.uniform(0.8, 1.2)
 
             score = CongestionScore(
@@ -221,8 +237,16 @@ def seed_enforcement_logs(db, users, zones):
                 minutes=random.randint(0, 59),
             )
             arrived = dispatched + timedelta(minutes=random.randint(5, 25))
-            resolved = arrived + timedelta(minutes=random.randint(10, 60)) if random.random() < 0.7 else None
-            outcome = random.choice(["citation_issued", "warning_given", "no_action"]) if resolved else "pending"
+            resolved = (
+                arrived + timedelta(minutes=random.randint(10, 60))
+                if random.random() < 0.7
+                else None
+            )
+            outcome = (
+                random.choice(["citation_issued", "warning_given", "no_action"])
+                if resolved
+                else "pending"
+            )
 
             log = EnforcementLog(
                 id=uuid.uuid4(),

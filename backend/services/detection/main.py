@@ -191,6 +191,7 @@ async def detect_violation(
     if roi:
         try:
             import json
+
             roi_parsed = json.loads(roi)
             h, w = frame.shape[:2]
             detections = filter_detections_by_roi(detections, roi_parsed, w, h)
@@ -237,9 +238,12 @@ def _pipeline_callback(camera_id: str, detections: list[DetectionResult]) -> Non
     config = stream_manager.get_config(camera_id)
     if config and config.roi_polygon:
         detections = [
-            d for d in detections
-            if d.bbox and point_in_polygon(
-                d.bbox.center[0], d.bbox.center[1],
+            d
+            for d in detections
+            if d.bbox
+            and point_in_polygon(
+                d.bbox.center[0],
+                d.bbox.center[1],
                 config.roi_polygon,
             )
         ]
@@ -272,10 +276,7 @@ async def start_stream(
         latitude=req.latitude,
         longitude=req.longitude,
         frame_interval=req.frame_interval,
-        roi_polygon=(
-            [tuple(p) for p in req.roi_polygon]
-            if req.roi_polygon else None
-        ),
+        roi_polygon=([tuple(p) for p in req.roi_polygon] if req.roi_polygon else None),
     )
 
     try:

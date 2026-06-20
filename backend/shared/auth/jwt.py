@@ -16,7 +16,7 @@ if not settings.JWT_SECRET_KEY:
         "JWT_SECRET_KEY is not set. Set it in .env or environment variables "
         "before starting the service. Example:\n"
         "  JWT_SECRET_KEY=your-secure-random-secret-key\n"
-        "You can generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        'You can generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
     )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

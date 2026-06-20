@@ -1,5 +1,6 @@
 def point_in_polygon(
-    px: float, py: float,
+    px: float,
+    py: float,
     polygon: list[tuple[float, float]],
 ) -> bool:
     n = len(polygon)
@@ -21,8 +22,10 @@ def filter_detections_by_roi(
     if not roi_polygon:
         return detections
     return [
-        d for d in detections
-        if d.bbox and point_in_polygon(
+        d
+        for d in detections
+        if d.bbox
+        and point_in_polygon(
             d.bbox.center[0] / frame_width,
             d.bbox.center[1] / frame_height,
             roi_polygon,

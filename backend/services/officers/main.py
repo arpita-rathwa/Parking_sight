@@ -126,7 +126,9 @@ async def update_status(
             "reason": update.notes,
             "timestamp": now.isoformat(),
         }
-        producer.send(KAFKA_TOPICS["officer_feedback"], key=str(log.id), value=feedback_event)
+        producer.send(
+            KAFKA_TOPICS["officer_feedback"], key=str(log.id), value=feedback_event
+        )
 
     return {
         "status": "updated",

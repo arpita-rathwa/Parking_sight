@@ -6,9 +6,15 @@ from typing import Any
 logger = logging.getLogger("ml-scoring-engine")
 
 FEATURE_COLS = [
-    "raw_count", "centroid_lat", "centroid_lon",
-    "n_unique_devices", "n_unique_vehicles",
-    "pct_approved", "pct_weekend", "mode_hour", "hour_std",
+    "raw_count",
+    "centroid_lat",
+    "centroid_lon",
+    "n_unique_devices",
+    "n_unique_vehicles",
+    "pct_approved",
+    "pct_weekend",
+    "mode_hour",
+    "hour_std",
 ]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,8 +46,10 @@ class MLScoringEngine:
                 clusters = json.load(f)
             if clusters:
                 self._cluster_stats = {
-                    "avg_severity": sum(c.get("avg_severity", 0.5) for c in clusters) / len(clusters),
-                    "avg_days": sum(c.get("distinct_days", 1) for c in clusters) / len(clusters),
+                    "avg_severity": sum(c.get("avg_severity", 0.5) for c in clusters)
+                    / len(clusters),
+                    "avg_days": sum(c.get("distinct_days", 1) for c in clusters)
+                    / len(clusters),
                 }
             logger.info("Loaded cluster summary with %d clusters", len(clusters))
         except Exception:
