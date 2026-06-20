@@ -23,7 +23,6 @@ RUN sed -i \
   -e 's/"tailwindcss": "catalog:"/"tailwindcss": "^4.0.0"/g' \
   -e 's/"vite": "catalog:"/"vite": "^6.0.0"/g' \
   -e 's/"zod": "catalog:"/"zod": "^3.24.1"/g' \
-  -e 's/"@workspace\/api-client-react": "workspace:\*"/"@workspace\/api-client-react": "^1.0.0"/g' \
   package.json
 
 RUN npm install

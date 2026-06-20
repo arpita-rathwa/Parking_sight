@@ -96,18 +96,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure AWS credentials
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       - name: Login to Amazon ECR
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and tag images
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      - name: Set registry URL
         run: |
+          if [ -n "${{ steps.login-ecr.outputs.registry }}" ]; then
+            echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> "$GITHUB_ENV"
+          else
+            echo "ECR_REGISTRY=parksight" >> "$GITHUB_ENV"
+          fi
+      - name: Build and tag images
+        run: |
+          REGISTRY=${ECR_REGISTRY:-parksight}
           declare -A dockerfiles=(
             ["detection"]="services/detection/Dockerfile"
             ["scoring"]="services/scoring/Dockerfile"
@@ -118,22 +126,24 @@ jobs:
           )
           for service in "${!dockerfiles[@]}"; do
             df=${dockerfiles[$service]}
-            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
-            docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service $ECR_REGISTRY/$ECR_REPOSITORY:latest-$service
+            docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service -f "$df" .
+            docker tag $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-$service $REGISTRY/$ECR_REPOSITORY:latest-$service
           done
       - name: Build frontend
         run: |
           cd ../frontend
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend -f Dockerfile .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend $ECR_REGISTRY/$ECR_REPOSITORY:latest-frontend
+          REGISTRY=${ECR_REGISTRY:-parksight}
+          docker build -t $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend .
+          docker tag $REGISTRY/$ECR_REPOSITORY:${{ github.sha }}-frontend $REGISTRY/$ECR_REPOSITORY:latest-frontend
 
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.EC2_HOST != ''
     steps:
       - name: Configure AWS credentials
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

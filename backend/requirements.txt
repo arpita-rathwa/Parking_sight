@@ -25,7 +25,7 @@ flake8==7.1.1
 black==24.8.0
 isort==5.13.2
 ultralytics==8.3.0
-opencv-python-headless==4.10.0
+opencv-python-headless==4.10.0.84
 supervision==0.24.0
 # ML scoring engine (optional — scoring worker falls back to heuristic)
 lightgbm==4.5.0
