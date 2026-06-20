@@ -24,7 +24,7 @@ from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
 from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.models.cameras import Camera
-from shared.models.database import Base, get_db, get_engine
+from shared.models.database import get_db
 from shared.models.violations import Violation
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry

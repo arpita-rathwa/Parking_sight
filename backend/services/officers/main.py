@@ -96,7 +96,7 @@ async def update_status(
     elif update.status == "resolved":
         log.resolved_at = now
         log.outcome = "resolved"
-    el    if update.status == "unresolvable":
+    elif update.status == "unresolvable":
         log.resolved_at = now
         log.outcome = "unresolvable"
     else:
