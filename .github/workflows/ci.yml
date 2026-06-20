@@ -84,6 +84,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg2://parksight:parksight@localhost:5432/parksight_test
           REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: test-ci-secret-key-12345678901234567890
 
   build:
     name: Build Docker Images
