@@ -42,6 +42,7 @@ def _consume_hotspot_predictions():
     finally:
         consumer.close()
 
+
 app = FastAPI(title="analytics-api", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
@@ -238,14 +239,14 @@ async def get_analytics_summary(
 
     open_cases = (
         db.query(func.count(Violation.id))
-        .filter(Violation.resolved == False)
+        .filter(Violation.resolved.is_(False))
         .scalar()
         or 0
     )
 
     resolved = (
         db.query(func.count(Violation.id))
-        .filter(Violation.resolved == True)
+        .filter(Violation.resolved.is_(True))
         .scalar()
         or 0
     )
@@ -265,7 +266,6 @@ async def get_analytics_summary(
         or 0
     )
 
-    from sqlalchemy import text
     avg_response = (
         db.query(
             func.avg(
