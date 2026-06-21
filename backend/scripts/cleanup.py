@@ -46,9 +46,15 @@ def cleanup_scores(db) -> int:
     try:
         from shared.models.congestion import CongestionScore
 
-        result = db.query(CongestionScore).filter(CongestionScore.timestamp < cutoff).delete()
+        result = (
+            db.query(CongestionScore)
+            .filter(CongestionScore.timestamp < cutoff)
+            .delete()
+        )
         db.commit()
-        logger.info("Purged %d congestion scores older than %d days", result, SCORES_DAYS)
+        logger.info(
+            "Purged %d congestion scores older than %d days", result, SCORES_DAYS
+        )
         return result
     except Exception:
         logger.warning("Could not cleanup congestion scores (table may not exist)")
@@ -61,9 +67,13 @@ def cleanup_logs(db) -> int:
     try:
         from shared.models.enforcement import EnforcementLog
 
-        result = db.query(EnforcementLog).filter(EnforcementLog.timestamp < cutoff).delete()
+        result = (
+            db.query(EnforcementLog).filter(EnforcementLog.timestamp < cutoff).delete()
+        )
         db.commit()
-        logger.info("Purged %d enforcement logs older than %d days", result, SCORES_DAYS)
+        logger.info(
+            "Purged %d enforcement logs older than %d days", result, SCORES_DAYS
+        )
         return result
     except Exception:
         logger.warning("Could not cleanup enforcement logs (table may not exist)")
@@ -74,7 +84,9 @@ def cleanup_logs(db) -> int:
 def main():
     logger.info(
         "Starting data cleanup (violations>%dd, scores>%dd, frames>%dd)",
-        VIOLATIONS_DAYS, SCORES_DAYS, FRAMES_DAYS,
+        VIOLATIONS_DAYS,
+        SCORES_DAYS,
+        FRAMES_DAYS,
     )
     db = get_session()
     try:

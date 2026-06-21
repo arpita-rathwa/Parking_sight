@@ -100,16 +100,12 @@ class DetectionModel:
                         self.shadow_model.float()
             else:
                 self.shadow_model.to("cpu")
-            logger.info(
-                "Shadow model loaded from %s", self.shadow_model_path
-            )
+            logger.info("Shadow model loaded from %s", self.shadow_model_path)
         except Exception:
             logger.exception("Failed to load shadow model")
             self.shadow_model = None
 
-    def _run_shadow(
-        self, tensor: torch.Tensor
-    ) -> list[list[DetectionResult]] | None:
+    def _run_shadow(self, tensor: torch.Tensor) -> list[list[DetectionResult]] | None:
         if self.shadow_model is None:
             return None
         try:
@@ -121,9 +117,12 @@ class DetectionModel:
                     continue
                 boxes = [
                     BoundingBox(
-                        x1=float(b[0]), y1=float(b[1]),
-                        x2=float(b[2]), y2=float(b[3]),
-                        confidence=float(c), class_id=int(cls),
+                        x1=float(b[0]),
+                        y1=float(b[1]),
+                        x2=float(b[2]),
+                        y2=float(b[3]),
+                        confidence=float(c),
+                        class_id=int(cls),
                     )
                     for b, c, cls in zip(
                         raw.boxes.xyxy.cpu().numpy(),
@@ -133,8 +132,12 @@ class DetectionModel:
                 ]
                 detections = self.postprocessor.process(
                     boxes,
-                    original_shape=(self.preprocessor.target_height, self.preprocessor.target_width),
-                    scale=1.0, pad=(0, 0),
+                    original_shape=(
+                        self.preprocessor.target_height,
+                        self.preprocessor.target_width,
+                    ),
+                    scale=1.0,
+                    pad=(0, 0),
                 )
                 parsed.append(detections)
             return parsed
@@ -249,13 +252,16 @@ class DetectionModel:
                     if len(champ) != len(shadow):
                         logger.info(
                             "Shadow diff frame %d: champion=%d shadow=%d",
-                            i, len(champ), len(shadow),
+                            i,
+                            len(champ),
+                            len(shadow),
                         )
                     for c, s in zip(champ, shadow):
                         if abs(c.confidence - s.confidence) > 0.2:
                             logger.debug(
                                 "Shadow confidence diff: champ=%.3f shadow=%.3f",
-                                c.confidence, s.confidence,
+                                c.confidence,
+                                s.confidence,
                             )
         return parsed
 

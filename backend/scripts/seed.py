@@ -74,9 +74,7 @@ def seed_zones(db):
 
 
 def seed_organization(db):
-    org = Organization(
-        id=uuid.uuid4(), name="Bengaluru Traffic Police"
-    )
+    org = Organization(id=uuid.uuid4(), name="Bengaluru Traffic Police")
     db.add(org)
     db.commit()
     print(f"Seeded organization: {org.name}")

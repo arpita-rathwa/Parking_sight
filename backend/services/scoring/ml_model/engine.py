@@ -107,6 +107,7 @@ def reload_scoring_engine(model_path: str | None = None) -> bool:
     if model_path:
         logger.info("Reloading scoring engine from promoted model: %s", model_path)
         import shutil
+
         try:
             shutil.copy(model_path, MODEL_PATH)
         except Exception:

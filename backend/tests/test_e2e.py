@@ -6,10 +6,13 @@ containers). Tests that are Kafka-dependent skip gracefully when unavailable.
 
 import importlib.util
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+TEST_ADMIN_UUID = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 DETECTION_DIR = BACKEND_ROOT / "services" / "detection"
@@ -109,9 +112,40 @@ def alerts_client():
 
 @pytest.fixture(scope="module")
 def auth_token():
-    from shared.auth.jwt import create_access_token
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
-    return create_access_token({"sub": "test-admin", "role": "admin"})
+    from shared.auth.jwt import create_access_token, get_password_hash
+    from shared.config.settings import settings
+    from shared.models.database import Base
+    from shared.models.users import Organization, User
+
+    engine = create_engine(settings.DATABASE_URL)
+    Base.metadata.create_all(bind=engine)
+    session = sessionmaker(bind=engine)()
+    try:
+        org = session.query(Organization).first()
+        if not org:
+            org = Organization(id=uuid.uuid4(), name="Test Org")
+            session.add(org)
+            session.flush()
+        user = session.query(User).filter(User.id == TEST_ADMIN_UUID).first()
+        if not user:
+            user = User(
+                id=TEST_ADMIN_UUID,
+                organization_id=org.id,
+                email="test-admin@parksight.com",
+                hashed_password=get_password_hash("test123"),
+                full_name="Test Admin",
+                role="admin",
+                is_active=True,
+            )
+            session.add(user)
+            session.commit()
+    finally:
+        session.close()
+
+    return create_access_token({"sub": str(TEST_ADMIN_UUID), "role": "admin"})
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────

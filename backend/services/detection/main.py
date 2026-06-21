@@ -67,9 +67,7 @@ DETECTION_TOTAL = Counter("detection_total", "Total detections processed")
 DETECTION_FAILURES = Counter(
     "detection_failures_total", "Total detection failures", labelnames=["reason"]
 )
-DETECTION_BUFFER_SIZE = Gauge(
-    "detection_buffer_size", "Current violation buffer size"
-)
+DETECTION_BUFFER_SIZE = Gauge("detection_buffer_size", "Current violation buffer size")
 MODEL_HEALTH = Gauge("detection_model_health", "Model health (1=loaded, 0=unloaded)")
 ACTIVE_STREAMS = Gauge("detection_active_streams", "Number of active camera streams")
 
@@ -86,7 +84,9 @@ def on_startup():
         half_precision=settings.ENABLE_HALF_PRECISION,
         watch_for_reload=settings.ENABLE_MODEL_HOT_RELOAD,
         watch_interval=settings.MODEL_WATCH_INTERVAL,
-        shadow_model_path=settings.SHADOW_MODEL_PATH if settings.ENABLE_SHADOW_MODE else None,
+        shadow_model_path=(
+            settings.SHADOW_MODEL_PATH if settings.ENABLE_SHADOW_MODE else None
+        ),
     )
     model.load()
     pipeline = BatchInferencePipeline(model=model, interval=settings.BATCH_INTERVAL)
@@ -99,9 +99,7 @@ def on_startup():
 
 def _log_dependency_status() -> None:
     deps = get_dependency_report()
-    degraded = [
-        name for name, info in deps.items() if info["status"] != "healthy"
-    ]
+    degraded = [name for name, info in deps.items() if info["status"] != "healthy"]
     if degraded:
         logger.warning(
             "Service starting in degraded mode — dependencies down: %s",
@@ -142,7 +140,6 @@ def _buffer_flush_loop() -> None:
             _flush_violation_buffer()
         except Exception:
             logger.exception("Buffer flush error")
-        import time
         time.sleep(30)
 
 
@@ -246,9 +243,7 @@ def _flush_violation_buffer() -> None:
             db.commit()
             with _buffer_lock:
                 _violation_buffer.popleft()
-            logger.info(
-                "Flushed buffered violation %s", entry["id"]
-            )
+            logger.info("Flushed buffered violation %s", entry["id"])
     except Exception:
         db.rollback()
         logger.warning(
@@ -328,9 +323,7 @@ def _publish_detection(
         KAFKA_TOPICS["violations_raw"], key=str(violation_id), value=event
     )
     if not kafka_ok:
-        logger.warning(
-            "Kafka unreachable — violation %s routed to DLQ", violation_id
-        )
+        logger.warning("Kafka unreachable — violation %s routed to DLQ", violation_id)
         dlq_ok = producer.send(
             KAFKA_TOPICS["violations_dlq"],
             key=str(violation_id),
@@ -523,9 +516,7 @@ def metrics():
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health():
     deps = get_dependency_report()
-    all_healthy = all(
-        d["status"] == "healthy" for d in deps.values()
-    )
+    all_healthy = all(d["status"] == "healthy" for d in deps.values())
     return {
         "status": "ok" if all_healthy else "degraded",
         "service": "detection-service",

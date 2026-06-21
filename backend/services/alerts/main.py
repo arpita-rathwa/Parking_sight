@@ -53,9 +53,7 @@ class NotificationManager:
     def _broadcast_sync(self, message: dict) -> None:
         if self._main_loop is None or self._main_loop.is_closed():
             return
-        asyncio.run_coroutine_threadsafe(
-            self.broadcast(message), self._main_loop
-        )
+        asyncio.run_coroutine_threadsafe(self.broadcast(message), self._main_loop)
 
 
 manager = NotificationManager()
@@ -70,9 +68,7 @@ def _consume_topic(topic: str, group_id: str, event_type: str, stop: Event) -> N
             if stop.is_set():
                 break
             try:
-                manager._broadcast_sync(
-                    {"type": event_type, "data": msg.value}
-                )
+                manager._broadcast_sync({"type": event_type, "data": msg.value})
             except Exception:
                 logger.exception("Failed to broadcast %s message", event_type)
     finally:
