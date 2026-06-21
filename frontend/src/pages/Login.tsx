@@ -33,7 +33,7 @@ export default function Login() {
       const formData = new URLSearchParams();
       formData.append("username", email);
       formData.append("password", password);
-      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+      const res = await fetch(`${API_BASE}/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData,

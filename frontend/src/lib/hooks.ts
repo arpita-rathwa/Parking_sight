@@ -83,7 +83,7 @@ export interface Camera {
 export function useSummary() {
   return useQuery<SummaryStats>({
     queryKey: ["summary"],
-    queryFn: () => api.get("/api/v1/analytics/summary"),
+    queryFn: () => api.get("/v1/analytics/summary"),
     refetchInterval: 30000,
   });
 }
@@ -94,14 +94,14 @@ export function useTrends(days = 7, zoneId?: string, vehicleType?: string) {
   if (vehicleType) params.set("vehicle_type", vehicleType);
   return useQuery<TrendsResponse>({
     queryKey: ["trends", days, zoneId, vehicleType],
-    queryFn: () => api.get(`/api/v1/analytics/trends?${params}`),
+    queryFn: () => api.get(`/v1/analytics/trends?${params}`),
   });
 }
 
 export function useHeatmap(hours = 24) {
   return useQuery<HeatmapResponse>({
     queryKey: ["heatmap", hours],
-    queryFn: () => api.get(`/api/v1/heatmap?hours=${hours}`),
+        queryFn: () => api.get(`/v1/heatmap?hours=${hours}`),
     refetchInterval: 60000,
   });
 }
@@ -109,7 +109,7 @@ export function useHeatmap(hours = 24) {
 export function usePriorityQueue(topN = 10, hours = 24) {
   return useQuery<PriorityZone[]>({
     queryKey: ["priority-queue", topN, hours],
-    queryFn: () => api.get(`/api/v1/priority-queue?top_n=${topN}&hours=${hours}`),
+    queryFn: () => api.get(`/v1/priority-queue?top_n=${topN}&hours=${hours}`),
     refetchInterval: 30000,
   });
 }
@@ -117,7 +117,7 @@ export function usePriorityQueue(topN = 10, hours = 24) {
 export function useAlerts() {
   return useQuery<AlertsResponse>({
     queryKey: ["alerts"],
-    queryFn: () => api.get("/api/v1/alerts"),
+    queryFn: () => api.get("/v1/alerts"),
     refetchInterval: 15000,
   });
 }
@@ -125,7 +125,7 @@ export function useAlerts() {
 export function useZoneImpact(zoneId: string, hours = 24) {
   return useQuery<ZoneImpact>({
     queryKey: ["zone-impact", zoneId, hours],
-    queryFn: () => api.get(`/api/v1/zones/${zoneId}/impact?hours=${hours}`),
+    queryFn: () => api.get(`/v1/zones/${zoneId}/impact?hours=${hours}`),
     enabled: !!zoneId,
   });
 }
@@ -133,7 +133,7 @@ export function useZoneImpact(zoneId: string, hours = 24) {
 export function useDevices() {
   return useQuery<{ streams: Camera[] }>({
     queryKey: ["devices"],
-    queryFn: () => api.get("/api/v1/detect/streams"),
+    queryFn: () => api.get("/v1/detect/streams"),
   });
 }
 
@@ -172,7 +172,7 @@ export interface DispatchOverview {
 export function useDispatchOverview() {
   return useQuery<DispatchOverview>({
     queryKey: ["dispatch-overview"],
-    queryFn: () => api.get("/api/v1/dispatch/overview"),
+    queryFn: () => api.get("/v1/dispatch/overview"),
     refetchInterval: 15000,
   });
 }
@@ -187,7 +187,7 @@ export interface CongestionHeatEntry {
 export function useCongestionHeat(hours = 24) {
   return useQuery<CongestionHeatEntry[]>({
     queryKey: ["congestion-heat", hours],
-    queryFn: () => api.get(`/api/v1/analytics/congestion-heat?hours=${hours}`),
+    queryFn: () => api.get(`/v1/analytics/congestion-heat?hours=${hours}`),
     refetchInterval: 60000,
   });
 }
@@ -201,7 +201,7 @@ export interface ViolationTypeEntry {
 export function useViolationTypes() {
   return useQuery<ViolationTypeEntry[]>({
     queryKey: ["violation-types"],
-    queryFn: () => api.get("/api/v1/analytics/violation-types"),
+    queryFn: () => api.get("/v1/analytics/violation-types"),
     refetchInterval: 60000,
   });
 }
@@ -221,7 +221,7 @@ export function useRadarData(zoneId?: string) {
   const params = zoneId ? `?zone_id=${zoneId}` : "";
   return useQuery<RadarResponse>({
     queryKey: ["radar", zoneId],
-    queryFn: () => api.get(`/api/v1/analytics/radar${params}`),
+    queryFn: () => api.get(`/v1/analytics/radar${params}`),
     refetchInterval: 60000,
   });
 }
@@ -233,7 +233,7 @@ export interface FactorWeightsResponse {
 export function useFactorWeights() {
   return useQuery<FactorWeightsResponse>({
     queryKey: ["factor-weights"],
-    queryFn: () => api.get("/api/v1/analytics/factor-weights"),
+    queryFn: () => api.get("/v1/analytics/factor-weights"),
     refetchInterval: 60000,
   });
 }
@@ -241,7 +241,7 @@ export function useFactorWeights() {
 export function useAnalyticsInsights() {
   return useQuery<string[]>({
     queryKey: ["analytics-insights"],
-    queryFn: () => api.get("/api/v1/analytics/insights"),
+    queryFn: () => api.get("/v1/analytics/insights"),
     refetchInterval: 60000,
   });
 }
@@ -256,7 +256,7 @@ export interface PredictedHotspot {
 export function usePredictedHotspots() {
   return useQuery<PredictedHotspot[]>({
     queryKey: ["predicted-hotspots"],
-    queryFn: () => api.get("/api/v1/analytics/predicted-hotspots"),
+    queryFn: () => api.get("/v1/analytics/predicted-hotspots"),
     refetchInterval: 60000,
   });
 }

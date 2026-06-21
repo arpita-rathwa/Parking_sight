@@ -1,0 +1,77 @@
+http:
+  routers:
+    frontend:
+      rule: "PathPrefix(`/`)"
+      priority: 1
+      service: frontend
+      entrypoints:
+        - web
+    detection:
+      rule: "PathPrefix(`/api/v1/detect`)"
+      service: detection
+      entrypoints:
+        - web
+    scoring:
+      rule: "PathPrefix(`/api/v1/zones`)"
+      service: scoring
+      entrypoints:
+        - web
+    dispatch:
+      rule: "PathPrefix(`/api/v1/dispatch`) || PathPrefix(`/api/v1/priority-queue`)"
+      service: dispatch
+      entrypoints:
+        - web
+    analytics:
+      rule: "PathPrefix(`/api/v1/analytics`)"
+      service: analytics
+      entrypoints:
+        - web
+    officers:
+      rule: "PathPrefix(`/api/v1/officer`) || PathPrefix(`/api/v1/auth`)"
+      service: officers
+      entrypoints:
+        - web
+    alerts:
+      rule: "PathPrefix(`/api/v1/notifications`)"
+      service: alerts
+      entrypoints:
+        - web
+    mlplatform:
+      rule: "PathPrefix(`/api/v1/forecast`) || PathPrefix(`/api/v1/officer/feedback`) || PathPrefix(`/api/v1/review`) || PathPrefix(`/api/v1/ml`)"
+      service: mlplatform
+      entrypoints:
+        - web
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+    detection:
+      loadBalancer:
+        servers:
+          - url: "http://detection-service:8001"
+    scoring:
+      loadBalancer:
+        servers:
+          - url: "http://scoring-service:8002"
+    dispatch:
+      loadBalancer:
+        servers:
+          - url: "http://dispatch-service:8003"
+    analytics:
+      loadBalancer:
+        servers:
+          - url: "http://analytics-api:8004"
+    officers:
+      loadBalancer:
+        servers:
+          - url: "http://officers-api:8005"
+    alerts:
+      loadBalancer:
+        servers:
+          - url: "http://alerts-service:8006"
+    mlplatform:
+      loadBalancer:
+        servers:
+          - url: "http://ml-platform-api:8007"

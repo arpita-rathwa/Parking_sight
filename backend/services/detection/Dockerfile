@@ -15,4 +15,6 @@ RUN pip install --no-cache-dir -r requirements.common.txt -r requirements.detect
 COPY shared/ ./shared/
 COPY services/detection/ ./services/detection/
 
+ENV PYTHONPATH="/app/services/detection:$PYTHONPATH"
+
 CMD ["uvicorn", "services.detection.main:app", "--host", "0.0.0.0", "--port", "8001"]

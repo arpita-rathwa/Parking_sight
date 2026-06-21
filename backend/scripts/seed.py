@@ -362,6 +362,11 @@ def seed_enforcement_logs(db, users, zones):
 if __name__ == "__main__":
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+    alembic_cfg.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", "postgresql+psycopg2://parksight:parksight@localhost:5432/parksight"))
+    command.stamp(alembic_cfg, "head")
     db = get_session()
     try:
         clear_data(db)

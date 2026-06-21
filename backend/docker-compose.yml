@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-common-env: &common-env
   PYTHONPATH: /app
   DATABASE_URL: "${DATABASE_URL:-postgresql+psycopg2://parksight:parksight@postgres:5432/parksight}"
@@ -15,8 +13,7 @@ services:
     image: traefik:v3.1
     command:
       - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
@@ -27,12 +24,8 @@ services:
       - "443:443"
       - "8080:8080"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./deploy/traefik_dynamic.yml:/etc/traefik/dynamic.yml:ro"
       - "letsencrypt:/letsencrypt"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`traefik.parksight.local`)"
-      - "traefik.http.routers.api.service=api@internal"
     depends_on:
       - frontend
       - detection-service
@@ -101,11 +94,7 @@ services:
       - "3000:80"
     environment:
       VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/api}"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-parksight.local}`) || PathPrefix(`/`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    labels: {}
 
   detection-service:
     build:
@@ -121,11 +110,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: detection
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.detection.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/detect`)"
-      - "traefik.http.routers.detection.entrypoints=web"
-      - "traefik.http.services.detection.loadbalancer.server.port=8001"
+    labels: {}
 
   scoring-service:
     build:
@@ -141,11 +126,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: scoring
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.scoring.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/zones`)"
-      - "traefik.http.routers.scoring.entrypoints=web"
-      - "traefik.http.services.scoring.loadbalancer.server.port=8002"
+    labels: {}
 
   dispatch-service:
     build:
@@ -162,11 +143,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: dispatch
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dispatch.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/dispatch`)"
-      - "traefik.http.routers.dispatch.entrypoints=web"
-      - "traefik.http.services.dispatch.loadbalancer.server.port=8003"
+    labels: {}
 
   analytics-api:
     build:
@@ -183,11 +160,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: analytics
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.analytics.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/analytics`)"
-      - "traefik.http.routers.analytics.entrypoints=web"
-      - "traefik.http.services.analytics.loadbalancer.server.port=8004"
+    labels: {}
 
   officers-api:
     build:
@@ -204,11 +177,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: officers
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.officers.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/officer`)"
-      - "traefik.http.routers.officers.entrypoints=web"
-      - "traefik.http.services.officers.loadbalancer.server.port=8005"
+    labels: {}
 
   alerts-service:
     build:
@@ -223,11 +192,7 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: alerts
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.alerts.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/notifications`)"
-      - "traefik.http.routers.alerts.entrypoints=web"
-      - "traefik.http.services.alerts.loadbalancer.server.port=8006"
+    labels: {}
 
   seed:
     build:
@@ -259,11 +224,7 @@ services:
       <<: *common-env
       SERVICE_NAME: ml-platform
       KAFKA_BOOTSTRAP: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mlplatform.rule=Host(`${DOMAIN:-parksight.local}`) && PathPrefix(`/api/v1/forecast`, `/api/v1/officer/feedback`, `/api/v1/review`, `/api/v1/ml`)"
-      - "traefik.http.routers.mlplatform.entrypoints=web"
-      - "traefik.http.services.mlplatform.loadbalancer.server.port=8007"
+    labels: {}
 
 volumes:
   pgdata:
