@@ -1,3 +1,14 @@
+---
+title: ParkInsight
+emoji: 🅿️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+dockerfile: backend/deploy/hf/Dockerfile
+app_port: 7860
+pinned: false
+---
+
 # ParkSight — AI Parking Enforcement
 
 AI-powered parking violation detection, congestion scoring, officer dispatch, and predictive enforcement — built as a SaaS monorepo with 6 microservices, 3 ML pipelines, and a real-time React dashboard.
