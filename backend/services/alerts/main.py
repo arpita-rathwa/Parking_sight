@@ -10,6 +10,7 @@ from shared.config.settings import settings
 from shared.kafka.consumer import create_consumer
 from shared.kafka.topics import KAFKA_TOPICS
 from shared.middleware.logging import StructuredLoggingMiddleware
+from shared.middleware.rate_limiter import RateLimitMiddleware
 from shared.utils.dependencies import get_dependency_report
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
@@ -25,6 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(StructuredLoggingMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.include_router(auth_router)
 
 

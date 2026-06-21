@@ -44,7 +44,7 @@ def cleanup_violations(db) -> int:
 def cleanup_scores(db) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(days=SCORES_DAYS)
     try:
-        from shared.models.congestion import CongestionScore
+        from shared.models.congestion_scores import CongestionScore
 
         result = (
             db.query(CongestionScore)
@@ -65,10 +65,10 @@ def cleanup_scores(db) -> int:
 def cleanup_logs(db) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(days=SCORES_DAYS)
     try:
-        from shared.models.enforcement import EnforcementLog
+        from shared.models.enforcement_log import EnforcementLog
 
         result = (
-            db.query(EnforcementLog).filter(EnforcementLog.timestamp < cutoff).delete()
+            db.query(EnforcementLog).filter(EnforcementLog.dispatched_at < cutoff).delete()
         )
         db.commit()
         logger.info(

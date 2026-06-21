@@ -30,7 +30,6 @@ def clear_data(db):
         "zones",
         "users",
         "organizations",
-        "users",
     ]:
         db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
     db.commit()
@@ -108,6 +107,75 @@ def seed_users(db, org):
     db.commit()
     print(f"Seeded {len(users_list)} users")
     return users_list
+
+
+def _get_zone_center(zone_name, default_lat=12.97, default_lng=77.59):
+    station_coords = {
+        "Madiwala": (12.92, 77.62), "Bellandur": (12.93, 77.68),
+        "Byatarayanapura": (13.02, 77.59), "Upparpet": (12.97, 77.57),
+        "Shivajinagar": (12.98, 77.60), "Pulikeshinagar": (13.00, 77.61),
+        "Vijayanagara": (12.97, 77.54), "Cubbon Park": (12.98, 77.59),
+        "K.R. Pura": (13.01, 77.69), "City Market": (12.97, 77.57),
+        "HSR Layout": (12.91, 77.63), "Thalagattapura": (12.87, 77.54),
+        "HAL Old Airport": (12.95, 77.68), "High Ground": (12.99, 77.59),
+    }
+    return station_coords.get(zone_name, (default_lat, default_lng))
+
+
+def seed_violations_synthetic(db, zones):
+    violation_types = ["NO PARKING", "DOUBLE PARKING", "FOOTPATH PARKING", "NO STOPPING", "ILLEGAL PARKING"]
+    vehicle_types = ["CAR", "SUV", "MOTORCYCLE", "AUTO", "TRUCK", "VAN"]
+    cameras = {}
+    batch = []
+    count = 0
+    now = datetime.now(timezone.utc)
+
+    for zone in zones:
+        camera_key = str(zone.id)
+        lat_base, lng_base = _get_zone_center(zone.name)
+        cam = Camera(
+            id=uuid.uuid4(),
+            name=f"Camera {zone.name}",
+            location=f"SRID=4326;POINT({lng_base + random.uniform(-0.01, 0.01)} {lat_base + random.uniform(-0.01, 0.01)})",
+            zone_id=zone.id,
+            status="active",
+        )
+        db.add(cam)
+        db.flush()
+        cameras[camera_key] = cam
+
+        num_violations = random.randint(50, 200)
+        for _ in range(num_violations):
+            ts = now - timedelta(
+                hours=random.uniform(0, 72),
+                minutes=random.uniform(0, 59),
+            )
+            lat = lat_base + random.uniform(-0.015, 0.015)
+            lng = lng_base + random.uniform(-0.015, 0.015)
+            violation = Violation(
+                id=uuid.uuid4(),
+                camera_id=cam.id,
+                timestamp=ts,
+                coordinates=f"SRID=4326;POINT({lng} {lat})",
+                confidence_score=random.uniform(0.75, 0.99),
+                vehicle_type=random.choice(vehicle_types),
+                violation_type=random.choice(violation_types),
+                resolved=random.random() < 0.4,
+            )
+            batch.append(violation)
+            count += 1
+
+            if count % 500 == 0:
+                db.bulk_save_objects(batch)
+                db.commit()
+                batch = []
+                print(f"Seeded {count} violations...")
+
+    if batch:
+        db.bulk_save_objects(batch)
+        db.commit()
+    print(f"Total violations seeded: {count}")
+    return violation_types
 
 
 def seed_violations_from_csv(db, csv_path):
@@ -296,7 +364,8 @@ if __name__ == "__main__":
         if os.path.exists(csv_path):
             seed_violations_from_csv(db, csv_path)
         else:
-            print(f"CSV not found at {csv_path}, skipping violation seeding")
+            print(f"CSV not found at {csv_path}, generating synthetic violations")
+            seed_violations_synthetic(db, zones)
         seed_congestion_scores(db, zones, hours=72)
         seed_enforcement_logs(db, users, zones)
         print("Seed complete!")

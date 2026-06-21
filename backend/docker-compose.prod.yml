@@ -100,4 +100,4 @@ services:
           memory: "2G"
 
   zookeeper:
-    restart: unless-stopped
+    <<: *prod-service
