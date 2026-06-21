@@ -5,7 +5,7 @@ import { ArrowRight, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { FloatingLights, AnimatedCanvas } from "@/components/CinematicBackground";
 import { setToken } from "@/lib/api";
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8004";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">

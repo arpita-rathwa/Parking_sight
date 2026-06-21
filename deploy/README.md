@@ -64,7 +64,7 @@ docker compose run --rm seed
 ### Oracle Cloud ARM VM Setup
 
 1. Create a free Oracle Cloud account (no credit card needed in some regions)
-2. Create an ARM VM (VM.Standard.A1.Flex — 4 OCPUs, 24GB RAM, up to 200GB storage)
+2. Create an ARM VM (VM.Standard.A1.Flex — 4 OCPUs, 24GB RAM, up to 200GB storage) with Ubuntu
 3. Allow ingress ports 80, 443 in the security list
 4. SSH in and run:
 
@@ -76,8 +76,28 @@ sudo usermod -aG docker ubuntu
 # Log out and back in, then:
 git clone https://github.com/arpita-rathwa/Parking_sight.git
 cd Parking_sight
-bash deploy/deploy.sh
+
+# Deploy with Supabase + Upstash (free managed services):
+export DATABASE_URL="postgresql+psycopg2://postgres:PASSWORD@db.XXXXX.supabase.co:5432/postgres"
+export REDIS_URL="rediss://:PASSWORD@XXXXX.upstash.io:6379"
+export KAFKA_BOOTSTRAP_SERVERS="XXXX-XXXXX.upstash.io:9092"
+bash deploy/deploy.sh --free-tier
+
+# Or deploy fully local (Postgres/Redis/Kafka inside Docker):
+# bash deploy/deploy.sh --local
 ```
+
+### CI/CD Setup (Optional — automated deploy on git push)
+
+After the VM is running, set these **GitHub secrets** in your repo settings:
+
+| Secret | Value |
+|--------|-------|
+| `EC2_HOST` | Your Oracle VM's public IP |
+| `EC2_SSH_KEY` | Your SSH private key (entire file contents) |
+| `GHCR_PAT` | GitHub PAT with `write:packages` scope |
+
+Each push to `main` will: build images → push to GHCR → SSH into the VM → pull & restart.
 
 ## Local Development
 

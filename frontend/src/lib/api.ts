@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8004";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 let _token: string | null = localStorage.getItem("parksight_token");
 
