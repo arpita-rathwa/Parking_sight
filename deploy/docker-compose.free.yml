@@ -1,0 +1,78 @@
+# Free-tier override — replaces local Postgres/Redis/Kafka with managed services.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f ../deploy/docker-compose.free.yml up -d
+#
+# Set these env vars before running:
+#   DATABASE_URL=postgresql+psycopg2://postgres:PASSWORD@db.XXXXX.supabase.co:5432/postgres
+#   REDIS_URL=rediss://:PASSWORD@XXXXX.upstash.io:6379
+#   KAFKA_BOOTSTRAP_SERVERS=XXXX-XXXXX.upstash.io:9092
+
+version: "3.9"
+
+services:
+  # ── Replace local Postgres with Supabase ──────────────────
+  postgres:
+    profiles:
+      - disabled
+    deploy:
+      replicas: 0
+
+  # ── Replace local Redis with Upstash ─────────────────────
+  redis:
+    profiles:
+      - disabled
+    deploy:
+      replicas: 0
+
+  # ── Replace local Kafka with Upstash ─────────────────────
+  kafka:
+    profiles:
+      - disabled
+    deploy:
+      replicas: 0
+
+  zookeeper:
+    profiles:
+      - disabled
+    deploy:
+      replicas: 0
+
+  # ── All services use external URLs via .env ──────────────
+  detection-service:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+
+  scoring-service:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+
+  dispatch-service:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+
+  analytics-api:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+
+  officers-api:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+
+  alerts-service:
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+
+  ml-platform-api:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
+      KAFKA_BOOTSTRAP: "${KAFKA_BOOTSTRAP_SERVERS}"
+
+  seed:
+    environment:
+      DATABASE_URL: "${DATABASE_URL}"
