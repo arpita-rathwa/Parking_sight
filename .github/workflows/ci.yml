@@ -38,10 +38,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
+      - name: Install linting dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install flake8==7.1.1 black==24.8.0 isort==5.13.2
       - name: Run flake8
         run: flake8 . --exclude=venv,__pycache__ --max-line-length=120
       - name: Run black check
@@ -131,7 +131,7 @@ jobs:
       - name: Set registry URL
         id: set-registry
         run: |
-          if [ -n "${{ steps.login-ecr.conclusion }}" ] && [ "${{ steps.login-ecr.conclusion }}" == "success" ] && [ -n "${{ steps.login-ecr.outputs.registry }}" ]; then
+          if [ "${{ env.AWS_ACCESS_KEY_ID }}" != "" ] && [ "${{ steps.login-ecr.outputs.registry }}" != "" ]; then
             echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> "$GITHUB_ENV"
           else
             echo "ECR_REGISTRY=ghcr.io/${{ github.repository_owner }}" >> "$GITHUB_ENV"
@@ -203,8 +203,13 @@ jobs:
 
             # Log in to container registry
             if [ -n "$AWS_ACCESS_KEY_ID" ]; then
-              aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin "$AWS_ACCESS_KEY_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
-              REGISTRY="$AWS_ACCESS_KEY_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+              ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+              if [ -z "$ACCOUNT_ID" ]; then
+                echo "ERROR: Could not determine AWS account ID"
+                exit 1
+              fi
+              aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+              REGISTRY="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
             elif [ -n "$GHCR_PAT" ]; then
               echo "$GHCR_PAT" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
               REGISTRY="ghcr.io/$GITHUB_REPOSITORY_OWNER"

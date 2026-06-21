@@ -111,7 +111,6 @@ services:
     build:
       context: .
       dockerfile: services/detection/Dockerfile
-    command: uvicorn main:app --host 0.0.0.0 --port 8001
     expose:
       - "8001"
     depends_on:
@@ -132,7 +131,6 @@ services:
     build:
       context: .
       dockerfile: services/scoring/Dockerfile
-    command: uvicorn main:app --host 0.0.0.0 --port 8002
     expose:
       - "8002"
     depends_on:
@@ -153,7 +151,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.base
-    command: uvicorn main:app --host 0.0.0.0 --port 8003
+    command: uvicorn services.dispatch.main:app --host 0.0.0.0 --port 8003
     expose:
       - "8003"
     depends_on:
@@ -174,7 +172,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.base
-    command: uvicorn main:app --host 0.0.0.0 --port 8004
+    command: uvicorn services.analytics.main:app --host 0.0.0.0 --port 8004
     expose:
       - "8004"
     depends_on:
@@ -195,7 +193,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.base
-    command: uvicorn main:app --host 0.0.0.0 --port 8005
+    command: uvicorn services.officers.main:app --host 0.0.0.0 --port 8005
     expose:
       - "8005"
     depends_on:
@@ -216,7 +214,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.base
-    command: uvicorn main:app --host 0.0.0.0 --port 8006
+    command: uvicorn services.alerts.main:app --host 0.0.0.0 --port 8006
     expose:
       - "8006"
     depends_on:

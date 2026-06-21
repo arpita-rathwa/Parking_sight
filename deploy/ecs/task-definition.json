@@ -19,7 +19,8 @@
       ],
       "environment": [
         { "name": "DOMAIN", "value": "parksight.example.com" },
-        { "name": "ACME_EMAIL", "value": "admin@parksight.example.com" }
+        { "name": "ACME_EMAIL", "value": "admin@parksight.example.com" },
+        { "name": "TRAEFIK_LOG_LEVEL", "value": "INFO" }
       ]
     },
     {
@@ -38,10 +39,10 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8001, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
-        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://CHANGEME@parksight-cache.XXXXX.region.elasticache.amazonaws.com:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "b-1.parksight.XXXXX.kafka.region.amazonaws.com:9092,b-2.parksight.XXXXX.kafka.region.amazonaws.com:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "CORS_ORIGINS", "value": "https://parksight.example.com" },
         { "name": "SERVICE_NAME", "value": "detection" },
         { "name": "PYTHONPATH", "value": "/app" }
@@ -63,10 +64,10 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8002, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
-        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://CHANGEME@parksight-cache.XXXXX.region.elasticache.amazonaws.com:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "b-1.parksight.XXXXX.kafka.region.amazonaws.com:9092,b-2.parksight.XXXXX.kafka.region.amazonaws.com:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "SERVICE_NAME", "value": "scoring" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
@@ -87,9 +88,9 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8003, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://CHANGEME@parksight-cache.XXXXX.region.elasticache.amazonaws.com:6379/0" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "SERVICE_NAME", "value": "dispatch" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
@@ -110,9 +111,9 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8004, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://CHANGEME@parksight-cache.XXXXX.region.elasticache.amazonaws.com:6379/0" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "CORS_ORIGINS", "value": "https://parksight.example.com" },
         { "name": "SERVICE_NAME", "value": "analytics" },
         { "name": "PYTHONPATH", "value": "/app" }
@@ -134,10 +135,10 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8005, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "REDIS_URL", "value": "redis://host.docker.internal:6379/0" },
-        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "REDIS_URL", "value": "redis://CHANGEME@parksight-cache.XXXXX.region.elasticache.amazonaws.com:6379/0" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "b-1.parksight.XXXXX.kafka.region.amazonaws.com:9092,b-2.parksight.XXXXX.kafka.region.amazonaws.com:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "SERVICE_NAME", "value": "officers" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
@@ -158,8 +159,8 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8006, "protocol": "tcp" }],
       "environment": [
-        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "host.docker.internal:9092" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "KAFKA_BOOTSTRAP_SERVERS", "value": "b-1.parksight.XXXXX.kafka.region.amazonaws.com:9092,b-2.parksight.XXXXX.kafka.region.amazonaws.com:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "SERVICE_NAME", "value": "alerts" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
@@ -180,9 +181,9 @@
       "essential": true,
       "portMappings": [{ "containerPort": 8007, "protocol": "tcp" }],
       "environment": [
-        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:PASSWORD@host.docker.internal:5432/parksight" },
-        { "name": "KAFKA_BOOTSTRAP", "value": "host.docker.internal:9092" },
-        { "name": "JWT_SECRET_KEY", "value": "" },
+        { "name": "DATABASE_URL", "value": "postgresql+psycopg2://parksight:CHANGEME@parksight-db.XXXXX.region.rds.amazonaws.com:5432/parksight" },
+        { "name": "KAFKA_BOOTSTRAP", "value": "b-1.parksight.XXXXX.kafka.region.amazonaws.com:9092,b-2.parksight.XXXXX.kafka.region.amazonaws.com:9092" },
+        { "name": "JWT_SECRET_KEY", "value": "CHANGEME-replace-with-256-bit-hex-key" },
         { "name": "SERVICE_NAME", "value": "ml-platform" },
         { "name": "PYTHONPATH", "value": "/app" }
       ],
