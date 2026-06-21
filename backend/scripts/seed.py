@@ -133,10 +133,12 @@ def seed_violations_synthetic(db, zones):
     for zone in zones:
         camera_key = str(zone.id)
         lat_base, lng_base = _get_zone_center(zone.name)
+        lng_off = lng_base + random.uniform(-0.01, 0.01)
+        lat_off = lat_base + random.uniform(-0.01, 0.01)
         cam = Camera(
             id=uuid.uuid4(),
             name=f"Camera {zone.name}",
-            location=f"SRID=4326;POINT({lng_base + random.uniform(-0.01, 0.01)} {lat_base + random.uniform(-0.01, 0.01)})",
+            location=f"SRID=4326;POINT({lng_off} {lat_off})",
             zone_id=zone.id,
             status="active",
         )
