@@ -18,6 +18,9 @@ from fastapi.responses import Response
 from pipeline.batcher import BatchInferencePipeline
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from stream.manager import StreamManager
+
 from shared.auth.jwt import require_role
 from shared.auth.routes import router as auth_router
 from shared.config.settings import settings
@@ -31,8 +34,6 @@ from shared.models.violations import Violation
 from shared.utils.dependencies import get_dependency_report
 from shared.utils.migrations import run_migrations
 from shared.utils.sentry import init_sentry
-from sqlalchemy.orm import Session
-from stream.manager import StreamManager
 
 logger = logging.getLogger("detection-service")
 
