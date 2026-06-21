@@ -18,6 +18,22 @@ TEST_DATABASE_URL = (
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _init_db():
+    """Create all tables before any test runs (autouse for E2E tests)."""
+    try:
+        from shared.models.database import Base
+
+        from shared.config.settings import settings
+
+        engine = create_engine(settings.DATABASE_URL)
+        Base.metadata.create_all(bind=engine)
+        yield
+        Base.metadata.drop_all(bind=engine)
+    except ImportError:
+        yield
+
+
 @pytest.fixture(scope="session")
 def test_engine():
     try:

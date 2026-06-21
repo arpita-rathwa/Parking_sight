@@ -16,7 +16,6 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from shared.config.settings import settings  # noqa: E402
 from shared.models.database import get_session  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)

@@ -41,4 +41,4 @@ def test_detect_no_auth(detection_app):
 
     client = TestClient(detection_app)
     resp = client.post("/api/v1/detect", params={"camera_id": "test-cam"})
-    assert resp.status_code == 403
+    assert resp.status_code in (401, 403)

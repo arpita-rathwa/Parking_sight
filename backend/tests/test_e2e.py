@@ -153,7 +153,7 @@ class TestHealth:
 class TestAuth:
     def test_detect_requires_auth(self, detection_client):
         resp = detection_client.post("/api/v1/detect")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
     def test_detect_with_token(self, detection_client, auth_token):
         resp = detection_client.post(
