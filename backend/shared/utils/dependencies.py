@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from typing import Optional
 
 from shared.config.settings import settings
 from shared.kafka.producer import circuit_breaker

@@ -5,7 +5,6 @@ containers). Tests that are Kafka-dependent skip gracefully when unavailable.
 """
 
 import importlib.util
-import os
 import sys
 from pathlib import Path
 

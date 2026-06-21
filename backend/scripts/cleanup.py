@@ -29,12 +29,17 @@ FRAMES_DAYS = int(os.getenv("DATA_RETENTION_FRAMES_DAYS", "30"))
 
 def cleanup_violations(db) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(days=VIOLATIONS_DAYS)
-    from shared.models.violations import Violation
+    try:
+        from shared.models.violations import Violation
 
-    result = db.query(Violation).filter(Violation.timestamp < cutoff).delete()
-    db.commit()
-    logger.info("Purged %d violations older than %d days", result, VIOLATIONS_DAYS)
-    return result
+        result = db.query(Violation).filter(Violation.timestamp < cutoff).delete()
+        db.commit()
+        logger.info("Purged %d violations older than %d days", result, VIOLATIONS_DAYS)
+        return result
+    except Exception:
+        logger.warning("Could not cleanup violations (table may not exist)")
+        db.rollback()
+        return 0
 
 
 def cleanup_scores(db) -> int:
@@ -46,8 +51,9 @@ def cleanup_scores(db) -> int:
         db.commit()
         logger.info("Purged %d congestion scores older than %d days", result, SCORES_DAYS)
         return result
-    except ImportError:
-        logger.warning("CongestionScore model not available, skipping")
+    except Exception:
+        logger.warning("Could not cleanup congestion scores (table may not exist)")
+        db.rollback()
         return 0
 
 
@@ -60,8 +66,9 @@ def cleanup_logs(db) -> int:
         db.commit()
         logger.info("Purged %d enforcement logs older than %d days", result, SCORES_DAYS)
         return result
-    except ImportError:
-        logger.warning("EnforcementLog model not available, skipping")
+    except Exception:
+        logger.warning("Could not cleanup enforcement logs (table may not exist)")
+        db.rollback()
         return 0
 
 

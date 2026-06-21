@@ -30,3 +30,6 @@ supervision==0.24.0
 # ML scoring engine (optional — scoring worker falls back to heuristic)
 lightgbm==4.5.0
 pandas==2.2.2
+# Prometheus metrics + email validation
+prometheus-client==0.21.0
+email-validator>=2.0.0
