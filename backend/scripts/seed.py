@@ -9,8 +9,6 @@ sys.path.insert(  # noqa: E402
     0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 
-from sqlalchemy import text  # noqa: E402
-
 from shared.auth.jwt import get_password_hash  # noqa: E402
 from shared.models.cameras import Camera  # noqa: E402
 from shared.models.congestion_scores import CongestionScore  # noqa: E402
@@ -19,6 +17,7 @@ from shared.models.enforcement_log import EnforcementLog  # noqa: E402
 from shared.models.users import Organization, User  # noqa: E402
 from shared.models.violations import Violation  # noqa: E402
 from shared.models.zones import Zone  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 
 def clear_data(db):
@@ -111,19 +110,32 @@ def seed_users(db, org):
 
 def _get_zone_center(zone_name, default_lat=12.97, default_lng=77.59):
     station_coords = {
-        "Madiwala": (12.92, 77.62), "Bellandur": (12.93, 77.68),
-        "Byatarayanapura": (13.02, 77.59), "Upparpet": (12.97, 77.57),
-        "Shivajinagar": (12.98, 77.60), "Pulikeshinagar": (13.00, 77.61),
-        "Vijayanagara": (12.97, 77.54), "Cubbon Park": (12.98, 77.59),
-        "K.R. Pura": (13.01, 77.69), "City Market": (12.97, 77.57),
-        "HSR Layout": (12.91, 77.63), "Thalagattapura": (12.87, 77.54),
-        "HAL Old Airport": (12.95, 77.68), "High Ground": (12.99, 77.59),
+        "Madiwala": (12.92, 77.62),
+        "Bellandur": (12.93, 77.68),
+        "Byatarayanapura": (13.02, 77.59),
+        "Upparpet": (12.97, 77.57),
+        "Shivajinagar": (12.98, 77.60),
+        "Pulikeshinagar": (13.00, 77.61),
+        "Vijayanagara": (12.97, 77.54),
+        "Cubbon Park": (12.98, 77.59),
+        "K.R. Pura": (13.01, 77.69),
+        "City Market": (12.97, 77.57),
+        "HSR Layout": (12.91, 77.63),
+        "Thalagattapura": (12.87, 77.54),
+        "HAL Old Airport": (12.95, 77.68),
+        "High Ground": (12.99, 77.59),
     }
     return station_coords.get(zone_name, (default_lat, default_lng))
 
 
 def seed_violations_synthetic(db, zones):
-    violation_types = ["NO PARKING", "DOUBLE PARKING", "FOOTPATH PARKING", "NO STOPPING", "ILLEGAL PARKING"]
+    violation_types = [
+        "NO PARKING",
+        "DOUBLE PARKING",
+        "FOOTPATH PARKING",
+        "NO STOPPING",
+        "ILLEGAL PARKING",
+    ]
     vehicle_types = ["CAR", "SUV", "MOTORCYCLE", "AUTO", "TRUCK", "VAN"]
     cameras = {}
     batch = []
