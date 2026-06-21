@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import signal
 from threading import Event, Thread
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect

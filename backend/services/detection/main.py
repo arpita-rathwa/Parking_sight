@@ -12,7 +12,7 @@ import numpy as np
 from detector.geometry import filter_detections_by_roi, point_in_polygon
 from detector.model import DetectionModel
 from detector.types import CameraConfig, DetectionResult, VehicleType
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
