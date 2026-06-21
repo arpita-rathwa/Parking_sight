@@ -22,9 +22,8 @@ TEST_DATABASE_URL = (
 def _init_db():
     """Create all tables before any test runs (autouse for E2E tests)."""
     try:
-        from shared.models.database import Base
-
         from shared.config.settings import settings
+        from shared.models.database import Base
 
         engine = create_engine(settings.DATABASE_URL)
         Base.metadata.create_all(bind=engine)

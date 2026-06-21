@@ -1,5 +1,5 @@
-import time
 import logging
+import time
 from enum import Enum
 from threading import Lock
 
