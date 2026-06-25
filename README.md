@@ -211,8 +211,5 @@ ParkSight is deployed in two ways:
 | Infra        | Docker Compose, Traefik, AWS ECS Fargate, Hugging Face Spaces                     |
 | CI/CD        | GitHub Actions (`.github/workflows`)                                              |
 
----
 
-## License
 
-MIT
